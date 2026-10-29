@@ -776,6 +776,17 @@ def main():
         app.loop.run_until_complete(start_server(client))
         logger.success(_t("Successfully started (Press Ctrl+C to stop)"))
 
+        # 获取各频道昵称,供 Web 配置中心显示 (get_chat 只读,不影响下载)
+        async def _fetch_chat_titles():
+            for _cid in app.chat_download_config:
+                try:
+                    _chat = await client.get_chat(_cid)
+                    app.chat_titles[str(_cid)] = _chat.title or ""
+                except Exception:
+                    app.chat_titles[str(_cid)] = ""
+
+        app.loop.run_until_complete(_fetch_chat_titles())
+
         app.loop.create_task(download_all_chat(client))
         for _ in range(app.max_download_task):
             task = app.loop.create_task(worker(client))

@@ -50,7 +50,7 @@
             <label>监听频道列表</label>
             <div id="chats_editor" style="display:inline-block;vertical-align:top;">
               <table class="layui-table" style="width:auto;margin:0;">
-                <thead><tr><th style="width:170px;">chat_id / 频道链接</th><th style="width:90px;">起始消息ID</th><th style="width:90px;">大小限制(MB)</th><th style="width:130px;">过滤器</th><th style="width:60px;">操作</th></tr></thead>
+                <thead><tr><th style="width:210px;">频道(昵称 + chat_id)</th><th style="width:90px;">起始消息ID</th><th style="width:90px;">大小限制(MB)</th><th style="width:130px;">过滤器</th><th style="width:60px;">操作</th></tr></thead>
                 <tbody id="chats_tbody"></tbody>
               </table>
               <button class="layui-btn layui-btn-xs" onclick="add_chat_row()" style="margin-top:6px;">+ 添加频道</button>
@@ -91,9 +91,9 @@
               <option value="RU">Русский</option>
               <option value="UA">Українська</option>
             </select>
-            <label style="margin-left:24px;">并发下载数</label>
+            <label style="margin-left:24px; width:auto;">并发下载数</label>
             <input type="number" id="max_download_task_input" style="width:70px;" min="1">
-            <label style="margin-left:24px;">频道并发</label>
+            <label style="margin-left:24px; width:auto;">频道并发</label>
             <input type="number" id="max_per_chat_input" style="width:70px;" min="0" placeholder="1">
             <div style="font-size:12px; color:#888; margin-top:4px;">并发下载数=全局同时下载任务数; 频道并发=每个频道同时下载数(0=不限制, 受限于全局并发)</div>
           </div>
@@ -199,6 +199,11 @@
       var $ = layui.$;
       var already_download_list_data = new Array()
       var download_list_table_data = new Array()
+      // 频道昵称映射: chat_id(str) -> title, 从配置加载
+      var chat_title_map = {}
+
+      // 页面初始化即加载一次配置,填充频道昵称映射(供下载中/已下载列表显示)
+      load_full_config();
 
       $.ajax({
         url: "get_app_version"
@@ -231,6 +236,7 @@
         , limit: 10000
         , cols: [[
           { field: 'chat', title: '频道', width: 100 },
+          { field: 'chat_nick', title: '频道昵称', width: 200, templet: function (d) { return chat_title_map[d.chat] || d.chat; } },
           { field: 'id', title: '消息ID', width: 100 }
           , { field: 'filename', title: '文件名', align: 'center' }
           , { field: 'total_size', title: '文件大小', align: 'center' }
@@ -270,6 +276,8 @@
         , limit: 10000
         , cols: [[
 
+          { field: 'chat', title: '频道', width: 100 },
+          { field: 'chat_nick', title: '频道昵称', width: 200, templet: function (d) { return chat_title_map[d.chat] || d.chat; } },
           { field: 'id', title: '消息ID', width: 100 }
           , { field: 'filename', title: '文件名', align: 'center' }
           , { field: 'total_size', title: '文件大小', align: 'center' }
@@ -290,7 +298,7 @@
               // 立即切换按钮(暂停<->继续), 不等1秒轮询
               var newState = (action == 'pause') ? 'paused' : 'running';
               var row = $('div[lay-id="download_list"] tr[data-index="' + chat + '-' + id + '"]');
-              var action_obj = row.find('td[data-key="1-0-6"] .layui-table-cell');
+              var action_obj = row.find('td[data-key="1-0-7"] .layui-table-cell');
               if (action_obj.length) {
                 action_obj.html(action_btns_html(chat, id, newState));
               }
@@ -335,12 +343,14 @@
         });
       }
 
-      function add_chat_row(chat_id, last_id, max_mb, filter) {
+      function add_chat_row(chat_id, last_id, max_mb, filter, title) {
         var tr = $('<tr>');
-        tr.append('<td><input type="text" class="chat_id_cell" style="width:160px;" value="' + (chat_id||'') + '" placeholder="-100xxxxxxxxx"></td>');
+        var esc = function (s) { return $('<span>').text(s || '').html(); };
+        var titleHtml = title ? '<div style="color:#009688;font-size:12px;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + esc(title) + '">' + esc(title) + '</div>' : '';
+        tr.append('<td style="max-width:210px;">' + titleHtml + '<input type="text" class="chat_id_cell" style="width:185px;" value="' + esc(chat_id) + '" placeholder="-100xxxxxxxxx"></td>');
         tr.append('<td><input type="number" class="chat_last_cell" style="width:80px;" value="' + (last_id||0) + '" min="0"></td>');
         tr.append('<td><input type="number" class="chat_maxmb_cell" style="width:80px;" value="' + (max_mb||0) + '" min="0"></td>');
-        tr.append('<td><input type="text" class="chat_filter_cell" style="width:120px;" value="' + (filter||'') + '" placeholder="如 video"></td>');
+        tr.append('<td><input type="text" class="chat_filter_cell" style="width:120px;" value="' + esc(filter) + '" placeholder="如 video"></td>');
         tr.append('<td><button class="layui-btn layui-btn-xs layui-btn-danger" onclick="$(this).closest(\'tr\').remove()">删除</button></td>');
         $('#chats_tbody').append(tr);
       }
@@ -348,10 +358,15 @@
       function load_chat_rows(cfg) {
         $('#chats_tbody').empty();
         var chats = (cfg && cfg.chats) || [];
-        if (chats.length === 0) { add_chat_row('', 0, 0, ''); }
+        // 重建频道昵称映射(供下载中/已下载列表显示)
+        chat_title_map = {};
+        for (var i = 0; i < chats.length; i++) {
+          chat_title_map[String(chats[i].chat_id)] = chats[i].title || '';
+        }
+        if (chats.length === 0) { add_chat_row('', 0, 0, '', ''); }
         for (var i = 0; i < chats.length; i++) {
           var c = chats[i];
-          add_chat_row(c.chat_id, c.last_read_message_id || 0, Math.round((c.max_file_size||0)/1024/1024), c.download_filter || '');
+          add_chat_row(c.chat_id, c.last_read_message_id || 0, Math.round((c.max_file_size||0)/1024/1024), c.download_filter || '', c.title || '');
         }
       }
 
@@ -569,7 +584,7 @@
               }
 
               // 操作列: 按 task_state 显示 暂停/继续
-              var action_obj = row_el.find('td[data-key="1-0-6"] .layui-table-cell');
+              var action_obj = row_el.find('td[data-key="1-0-7"] .layui-table-cell');
               if (action_obj.length) {
                 action_obj.html(action_btns_html(item.chat, item.id, item.task_state));
               }
@@ -599,13 +614,14 @@
               // not found
               obj = $('div[lay-id="download_list"]  .layui-table-body .layui-table tbody')
               var tr = ' <tr data-index="' + result[i].chat + '-' + result[i].id + '">' +
-                '<td data-field="id" data-key="1-0-0" class=""><div class="layui-table-cell laytable-cell-1-0-0">' + result[i].chat + '</div></td>' +
-                '<td data-field="id" data-key="1-0-1" class=""><div class="layui-table-cell laytable-cell-1-0-1">' + result[i].id + '</div></td>' +
-                '<td data-field="filename" data-key="1-0-2" class=""><div class="layui-table-cell laytable-cell-1-0-2" align="center">' + result[i].filename + '</div></td>' +
-                '<td data-field="total_size" data-key="1-0-3" class=""><div class="layui-table-cell laytable-cell-1-0-3" align="center">' + result[i].total_size + '</div></td>' +
-                '<td data-field="download_progress" data-key="1-0-4" data-content="' + result[i].download_progress + '" class=""><div class="layui-table-cell laytable-cell-1-0-4" align="center"><div class="layui-progress layui-progress-big" lay-showpercent="true" lay-filter="down-' + result[i].chat + '-' + result[i].id + '"><div class="layui-progress-bar layui-bg-blue" lay-percent="' + result[i].download_progress + '%" style="width: ' + result[i].download_progress + '%;"><span class="layui-progress-text">' + result[i].download_progress + '%</span></div></div></div></td>' +
-                '<td data-field="download_speed" data-key="1-0-5" class=""><div class="layui-table-cell laytable-cell-1-0-5" align="center"lay-filter="down_speed-' + result[i].chat + '-' + result[i].id + '">' + result[i].download_speed + '</div></td>' +
-                '<td data-field="action" data-key="1-0-6" class=""><div class="layui-table-cell laytable-cell-1-0-6" align="center">' + action_btns_html(result[i].chat, result[i].id, result[i].task_state) + '</div></td>' +
+                '<td data-field="chat" data-key="1-0-0" class=""><div class="layui-table-cell laytable-cell-1-0-0">' + result[i].chat + '</div></td>' +
+                '<td data-field="chat_nick" data-key="1-0-1" class=""><div class="layui-table-cell laytable-cell-1-0-1">' + (chat_title_map[result[i].chat] || result[i].chat) + '</div></td>' +
+                '<td data-field="id" data-key="1-0-2" class=""><div class="layui-table-cell laytable-cell-1-0-2">' + result[i].id + '</div></td>' +
+                '<td data-field="filename" data-key="1-0-3" class=""><div class="layui-table-cell laytable-cell-1-0-3" align="center">' + result[i].filename + '</div></td>' +
+                '<td data-field="total_size" data-key="1-0-4" class=""><div class="layui-table-cell laytable-cell-1-0-4" align="center">' + result[i].total_size + '</div></td>' +
+                '<td data-field="download_progress" data-key="1-0-5" data-content="' + result[i].download_progress + '" class=""><div class="layui-table-cell laytable-cell-1-0-5" align="center"><div class="layui-progress layui-progress-big" lay-showpercent="true" lay-filter="down-' + result[i].chat + '-' + result[i].id + '"><div class="layui-progress-bar layui-bg-blue" lay-percent="' + result[i].download_progress + '%" style="width: ' + result[i].download_progress + '%;"><span class="layui-progress-text">' + result[i].download_progress + '%</span></div></div></div></td>' +
+                '<td data-field="download_speed" data-key="1-0-6" class=""><div class="layui-table-cell laytable-cell-1-0-6" align="center"lay-filter="down_speed-' + result[i].chat + '-' + result[i].id + '">' + result[i].download_speed + '</div></td>' +
+                '<td data-field="action" data-key="1-0-7" class=""><div class="layui-table-cell laytable-cell-1-0-7" align="center">' + action_btns_html(result[i].chat, result[i].id, result[i].task_state) + '</div></td>' +
                 "  </tr>";
               obj.append(tr)
               download_list_table_data.push(result[i])
@@ -672,10 +688,12 @@
               // not found
               obj = $('div[lay-id="already_download_list"]  .layui-table-body .layui-table tbody')
               var tr = ' <tr data-index="' + result[i].chat + '-' + result[i].id + '">' +
-                '<td data-field="id" data-key="2-0-0" class=""><div class="layui-table-cell laytable-cell-2-0-0">' + result[i].id + '</div></td>' +
-                '<td data-field="filename" data-key="2-0-1" class=""><div class="layui-table-cell laytable-cell-2-0-1" align="center">' + result[i].filename + '</div></td>' +
-                '<td data-field="total_size" data-key="2-0-2" class=""><div class="layui-table-cell laytable-cell-2-0-2" align="center">' + result[i].total_size + '</div></td>' +
-                '<td data-field="save_path" data-key="2-0-3" class=""><div class="layui-table-cell laytable-cell-2-0-3" align="center">' + result[i].save_path + '</div></td>' +
+                '<td data-field="chat" data-key="2-0-0" class=""><div class="layui-table-cell laytable-cell-2-0-0">' + result[i].chat + '</div></td>' +
+                '<td data-field="chat_nick" data-key="2-0-1" class=""><div class="layui-table-cell laytable-cell-2-0-1">' + (chat_title_map[result[i].chat] || result[i].chat) + '</div></td>' +
+                '<td data-field="id" data-key="2-0-2" class=""><div class="layui-table-cell laytable-cell-2-0-2">' + result[i].id + '</div></td>' +
+                '<td data-field="filename" data-key="2-0-3" class=""><div class="layui-table-cell laytable-cell-2-0-3" align="center">' + result[i].filename + '</div></td>' +
+                '<td data-field="total_size" data-key="2-0-4" class=""><div class="layui-table-cell laytable-cell-2-0-4" align="center">' + result[i].total_size + '</div></td>' +
+                '<td data-field="save_path" data-key="2-0-5" class=""><div class="layui-table-cell laytable-cell-2-0-5" align="center">' + result[i].save_path + '</div></td>' +
                 "  </tr>";
               obj.append(tr)
 

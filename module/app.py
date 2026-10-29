@@ -401,6 +401,8 @@ class Application:
         self.language = Language.EN
         # 每频道并发下载数(受限于全局 max_download_task), 0=不限制
         self.max_download_task_per_chat: int = 1
+        # 频道昵称缓存: chat_id(str) -> title, 启动时从 Telegram 获取
+        self.chat_titles: dict = {}
         # 单文件下载超时(分钟), 0=不限
         self.download_timeout: int = 0
         # 全局大小限制(对所有下载生效,含机器人命令下载的文件)
@@ -1205,6 +1207,7 @@ class Application:
             chats.append(
                 {
                     "chat_id": str(chat_id),
+                    "title": self.chat_titles.get(str(chat_id), ""),
                     "max_file_size": getattr(cfg, "max_file_size", 0),
                     "download_filter": getattr(cfg, "download_filter", "") or "",
                     "last_read_message_id": getattr(
