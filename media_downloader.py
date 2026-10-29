@@ -606,8 +606,12 @@ def _check_config() -> bool:
     return True
 
 
+# 每个频道当前正在下载的任务数 (用于频道并发限制)
+_chat_active_count: dict = {}
+
+
 async def worker(client: pyrogram.client.Client):
-    """Work for download task"""
+    """Work for download task (全局并发 = worker 数量, 每频道并发受 max_download_task_per_chat 限制)"""
     while app.is_running:
         try:
             item = await queue.get()
@@ -617,10 +621,25 @@ async def worker(client: pyrogram.client.Client):
             if node.is_stop_transmission:
                 continue
 
-            if node.client:
-                await download_task(node.client, message, node)
-            else:
-                await download_task(client, message, node)
+            chat_id = node.chat_id
+            per_chat_limit = app.max_download_task_per_chat
+            # 频道并发限制: 该频道活动任务数已达上限时放回队列,稍后重试
+            if per_chat_limit > 0 and _chat_active_count.get(chat_id, 0) >= per_chat_limit:
+                if app.is_running:
+                    await queue.put(item)
+                await asyncio.sleep(0.5)
+                continue
+
+            _chat_active_count[chat_id] = _chat_active_count.get(chat_id, 0) + 1
+            try:
+                if node.client:
+                    await download_task(node.client, message, node)
+                else:
+                    await download_task(client, message, node)
+            finally:
+                _chat_active_count[chat_id] = max(
+                    _chat_active_count.get(chat_id, 0) - 1, 0
+                )
         except Exception as e:
             logger.exception(f"{e}")
 

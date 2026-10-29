@@ -44,5 +44,8 @@ save_path: /app/downloads
 # 并发下载数
 max_download_task: 2
 
+# 每频道并发下载数(每个频道同时下载任务数, 0=不限制, 受限于全局并发)
+max_download_task_per_chat: 1
+
 # 语言: ZH=中文 EN=English
 language: ZH

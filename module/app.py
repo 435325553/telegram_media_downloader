@@ -399,6 +399,8 @@ class Application:
         self.web_port: int = 5000
         self.max_download_task: int = 5
         self.language = Language.EN
+        # 每频道并发下载数(受限于全局 max_download_task), 0=不限制
+        self.max_download_task_per_chat: int = 1
         # 单文件下载超时(分钟), 0=不限
         self.download_timeout: int = 0
         # 全局大小限制(对所有下载生效,含机器人命令下载的文件)
@@ -502,6 +504,11 @@ class Application:
         self.max_download_task = _config.get(
             "max_download_task", self.max_download_task
         )
+        try:
+            _per_chat = int(_config.get("max_download_task_per_chat", 1) or 0)
+        except (TypeError, ValueError):
+            _per_chat = 1
+        self.max_download_task_per_chat = max(_per_chat, 0)
         # 全局大小限制: max_size_enabled(开关) + max_size(MB), 缺省默认500MB
         _g_enabled = _config.get("max_size_enabled", self.global_max_size_enabled)
         try:
@@ -995,6 +1002,19 @@ class Application:
             except (TypeError, ValueError):
                 errors.append("max_download_task must be a positive integer")
 
+        # ---- max_download_task_per_chat (每频道并发, 0=不限制, 受限于全局) ----
+        if "max_download_task_per_chat" in new_cfg:
+            try:
+                n = int(new_cfg["max_download_task_per_chat"] or 0)
+                if n < 0:
+                    raise ValueError
+                self.max_download_task_per_chat = n
+                self.config["max_download_task_per_chat"] = n
+            except (TypeError, ValueError):
+                errors.append(
+                    "max_download_task_per_chat must be a non-negative integer"
+                )
+
         # ---- save_path ----
         if "save_path" in new_cfg and new_cfg["save_path"]:
             self.save_path = str(new_cfg["save_path"])
@@ -1208,6 +1228,7 @@ class Application:
             "max_size_enabled": self.global_max_size_enabled,
             "max_size": self.global_max_size_mb,
             "download_timeout": self.download_timeout,
+            "max_download_task_per_chat": self.max_download_task_per_chat,
         }
 
     def load_config(self):

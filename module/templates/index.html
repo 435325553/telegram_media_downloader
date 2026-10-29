@@ -93,7 +93,13 @@
             </select>
             <label style="margin-left:24px;">并发下载数</label>
             <input type="number" id="max_download_task_input" style="width:70px;" min="1">
-            <label style="margin-left:24px;">Web端口</label>
+            <label style="margin-left:24px;">频道并发</label>
+            <input type="number" id="max_per_chat_input" style="width:70px;" min="0" placeholder="1">
+            <div style="font-size:12px; color:#888; margin-top:4px;">并发下载数=全局同时下载任务数; 频道并发=每个频道同时下载数(0=不限制, 受限于全局并发)</div>
+          </div>
+
+          <div class="config-row">
+            <label>Web端口</label>
             <input type="number" id="web_port_input" style="width:80px;" min="1">
           </div>
 
@@ -366,6 +372,7 @@
           media_types: media_types,
           language: $('#language_select').val(),
           max_download_task: parseInt($('#max_download_task_input').val()) || 1,
+          max_download_task_per_chat: parseInt($('#max_per_chat_input').val()) || 0,
           web_port: parseInt($('#web_port_input').val()) || 5000,
           save_path: $('#save_path_input').val().trim(),
           bot_token: $('#bot_token_input').val().trim(),
@@ -454,6 +461,7 @@
             $('#language_select').val(cfg.language || 'EN');
             // 并发/端口/路径
             $('#max_download_task_input').val(cfg.max_download_task || 1);
+            $('#max_per_chat_input').val(cfg.max_download_task_per_chat || 0);
             $('#web_port_input').val(cfg.web_port || 5000);
             $('#save_path_input').val(cfg.save_path || '/app/downloads');
             // 代理
