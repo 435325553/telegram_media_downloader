@@ -1,0 +1,225 @@
+# Telegram Media Downloader（中文增强版）
+
+基于 [tangyoha/telegram_media_downloader](https://github.com/tangyoha/telegram_media_downloader) 二次开发的增强版。
+
+**版本：2.3.0**（基于上游 2.2.5 深度改造）
+
+> 本版本在原项目基础上新增了 Web 可视化管理、任务暂停/继续/删除、网页全配置、每频道大小限制、多频道同时监听、中文回复等能力，无需再手动编辑配置文件。
+
+---
+
+## ✨ 新增功能一览
+
+| 功能 | 说明 |
+|---|---|
+| 🖥️ **Web 可视化管理界面** | 浏览器打开即用，任务列表实时显示进度/速度，无需命令行 |
+| ⏸️ **任务暂停/继续/删除** | Web 页面一键操作，删除后文件不落地 |
+| ⚙️ **网页全配置** | 所有配置（频道、媒体类型、语言、并发、端口、代理、Token）均可在网页修改 |
+| 💾 **保存即重启** | 网页修改配置后点"保存并重启容器"，自动生效，无需手动改 config.yaml |
+| 📏 **每频道大小限制** | 超过指定大小的文件自动跳过不下载（按频道分别设置） |
+| 📡 **多频道同时监听** | 可配置任意多个频道，同时下载所有频道的媒体 |
+| 🇨🇳 **机器人中文回复** | 机器人所有回复/报错均为中文，含详细说明与命令示例 |
+| 🌐 **WebUI 全汉化** | 界面全部中文化 |
+| 🔍 **起始消息ID断点续传** | 记录已下载位置，重启不重复下载 |
+
+---
+
+## 🚀 快速开始（Docker 部署）
+
+### 1. 获取 API 凭证
+
+1. 前往 [my.telegram.org](https://my.telegram.org) 登录，创建一个应用，获取 `api_id` 和 `api_hash`。
+2. 在 Telegram 中向 [@BotFather](https://t.me/BotFather) 发送 `/newbot` 创建一个机器人，获取 `bot_token`。
+
+### 2. 编写配置文件
+
+复制 `config.example.yaml` 为 `config.yaml`，填入你的凭证：
+
+```yaml
+api_id: 12345678
+api_hash: 0123456789abcdef0123456789abcdef
+bot_token: 123456789:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+
+# 可选: 代理
+proxy:
+  scheme: http
+  hostname: 127.0.0.1
+  port: 7890
+```
+
+### 3. 配置监听频道
+
+在 `chat` 列表中添加要监听的频道（可多个）：
+
+```yaml
+chat:
+- chat_id: https://t.me/频道用户名      # 频道链接或数字ID
+  last_read_message_id: 0              # 起始消息ID, 0=从头开始
+  max_file_size: 0                     # 大小限制(MB), 0=不限
+  download_filter: ''                  # 过滤器, 如 video/audio, 留空=全部
+- chat_id: -1001234567890              # 数字ID格式
+  last_read_message_id: 36653          # 从该消息ID开始下载
+  max_file_size: 500                   # 超过500MB不下载
+  download_filter: 'video'             # 只下载视频
+```
+
+**起始消息ID 是什么？**
+
+> t.me 链接中 `/` 后面的数字就是消息 ID。
+> 例如 `https://t.me/madougirl/36653` 中的 `36653` 就是消息 ID，表示从这条消息开始下载。
+> 填 `0` 表示从头开始下载整个频道历史。
+> 程序运行完会自动把这个值更新为已处理到的最新消息 ID（断点续传），下次不会重复下载。
+
+### 4. 启动容器
+
+```bash
+docker compose up -d
+```
+
+### 5. 打开 Web 管理界面
+
+浏览器访问 `http://服务器IP:8066/`（端口可在配置中修改）。
+
+> 注意：首次启动时，程序会用你的账号（api_id/api_hash）登录 Telegram 并请求手机号验证码。如果是 Docker 部署，需要进入容器日志查看验证码提示，或在容器内运行 `python media_downloader.py` 完成首次登录（生成 session 后即可正常使用）。
+
+---
+
+## 🖥️ Web 管理界面使用说明
+
+### 下载中 / 已下载
+
+- **下载中**：实时显示所有正在下载的任务
+  - 频道、消息 ID、文件名、文件大小、下载进度（百分比）、下载速度（每秒刷新）
+  - 操作列：**暂停**（点击后变"继续"）、**删除**（点击后确认删除，文件不会落地）
+- **已下载**：查看已完成的下载记录
+
+### 配置中心
+
+所有配置均可在此修改，修改后点击"保存并重启容器"自动生效（约 10-30 秒）。
+
+| 配置项 | 说明 |
+|---|---|
+| 监听频道列表 | 频道链接/数字ID + 起始消息ID + 大小限制(MB) + 过滤器，可添加多个 |
+| 下载的媒体类型 | 图片/视频/音频/语音/文档/视频笔记，可多选 |
+| 语言 | 中文 / English / Русский / Українська |
+| 并发下载数 | 同时下载的任务数 |
+| Web端口 | Web 界面端口 |
+| 保存路径 | 容器内路径（默认 /app/downloads） |
+| 代理 | 启用/关闭，填写代理地址 |
+| 机器人 Token | 修改后需重启生效 |
+
+---
+
+## 🤖 机器人命令
+
+在 Telegram 中向机器人发送命令：
+
+### 常用命令
+
+| 命令 | 作用 |
+|---|---|
+| `/help` | 查看全部命令说明 |
+| `/download` | 下载指定频道的消息 |
+| `/forward` | 转发消息到其他频道 |
+| `/set_max_size` | 设置每频道最大下载大小 |
+| `/set_language` | 切换语言 |
+
+### 命令示例
+
+**下载一个频道的历史消息：**
+
+```
+/download https://t.me/madougirl 36653 40000 video
+```
+
+说明：
+- `https://t.me/madougirl`：频道链接
+- `36653`：起始消息 ID（t.me 链接里的数字）
+- `40000`：结束消息 ID（0=下载到最新）
+- `video`：过滤器（只下载视频，可留空）
+
+**转发消息到其他频道：**
+
+```
+/forward https://t.me/c/1234567890 https://t.me/c/9876543210 1 400
+```
+
+说明：
+- 第一个链接：源频道
+- 第二个链接：目标频道（机器人需是目标频道管理员）
+- `1`：起始消息 ID
+- `400`：结束消息 ID
+- `[过滤器]`：可选，如 `video`
+
+**设置频道大小限制：**
+
+```
+/set_max_size https://t.me/madougirl 500
+```
+
+说明：该频道单个文件超过 500MB 将跳过不下载；填 `0` 表示不限。
+
+**切换语言：**
+
+```
+/set_language zh
+```
+
+说明：`zh`=中文，`en`=英文。
+
+---
+
+## 📦 版本更新记录
+
+### v2.3.0（2026-10-29）
+
+**新增：**
+- Web 管理界面（任务列表、配置中心）
+- 任务暂停 / 继续 / 删除（Web 一键操作）
+- 网页全配置（无需编辑配置文件）
+- "保存并重启容器"按钮
+- 每频道最大文件大小限制（max_file_size）
+- 多频道同时监听下载
+- 机器人中文回复（含详细说明与示例）
+- WebUI 全汉化
+
+**修复：**
+- 暂停按钮状态不同步问题（暂停后按钮变"继续"）
+- 删除任务不生效问题（删除后任务不再复活，文件不落地）
+- 暂停时速度显示"已暂停"而非旧速度
+
+---
+
+## 🛠️ 开发说明
+
+### 项目结构
+
+```
+├── media_downloader.py      # 主程序
+├── module/
+│   ├── app.py               # 核心应用（配置、任务调度）
+│   ├── bot.py               # Telegram 机器人
+│   ├── web.py               # Web 后端接口
+│   ├── download_stat.py     # 任务状态控制（暂停/继续/删除）
+│   ├── language.py          # 多语言翻译
+│   ├── templates/index.html # Web 前端
+│   └── ...
+├── utils/
+│   └── __init__.py          # 版本号定义
+├── requirements.txt
+├── Dockerfile
+└── config.example.yaml
+```
+
+### 二次开发关键改动
+
+- **`download_stat.py`**：新增 `TaskControlState` 枚举，维护 `_task_control` 字典（key=chat_id+message_id），提供 pause/resume/delete 能力。下载循环会检测任务状态，暂停时挂起、删除时中止并丢弃文件。
+- **`web.py`**：新增 `/pause_task`、`/resume_task`、`/delete_task`、`/get_config`、`/save_config`、`/restart_app`、`/set_bot_token`、`/set_chat_max_size` 等接口。
+- **`app.py`**：`ChatDownloadConfig` 增加 `max_file_size`；`apply_web_config()` 支持网页保存配置；`request_restart()` 延迟 2 秒重启保证 Web 响应先返回。
+- **`bot.py` + `language.py`**：机器人全部回复改为中文模板，错误提示带详细说明与命令示例。
+
+---
+
+## 📄 License
+
+MIT License，与上游项目一致。

@@ -1,0 +1,1785 @@
+Created by PLY version 3.11 (http://www.dabeaz.com/ply)
+
+Grammar
+
+Rule 0     S' -> statement
+Rule 1     statement -> NAME = expression
+Rule 2     statement -> expression
+Rule 3     expression -> expression + expression
+Rule 4     expression -> expression - expression
+Rule 5     expression -> expression * expression
+Rule 6     expression -> expression / expression
+Rule 7     expression -> expression > expression
+Rule 8     expression -> expression < expression
+Rule 9     expression -> - expression
+Rule 10    expression -> expression GE expression
+Rule 11    expression -> expression LE expression
+Rule 12    expression -> expression EQ expression
+Rule 13    expression -> expression NE expression
+Rule 14    expression -> ( expression )
+Rule 15    expression -> NUMBER
+Rule 16    expression -> TIME
+Rule 17    expression -> BYTE
+Rule 18    expression -> NAME
+Rule 19    expression -> expression LOR expression
+Rule 20    expression -> expression LAND expression
+Rule 21    expression -> expression OR expression
+Rule 22    expression -> expression AND expression
+Rule 23    expression -> STRING
+Rule 24    expression -> RESTRING
+
+Terminals, with rules where they appear
+
+(                    : 14
+)                    : 14
+*                    : 5
++                    : 3
+-                    : 4 9
+/                    : 6
+<                    : 8
+=                    : 1
+>                    : 7
+AND                  : 22
+BYTE                 : 17
+EQ                   : 12
+GE                   : 10
+LAND                 : 20
+LE                   : 11
+LOR                  : 19
+NAME                 : 1 18
+NE                   : 13
+NUMBER               : 15
+OR                   : 21
+RESTRING             : 24
+STRING               : 23
+TIME                 : 16
+error                : 
+
+Nonterminals, with rules where they appear
+
+expression           : 1 2 3 3 4 4 5 5 6 6 7 7 8 8 9 10 10 11 11 12 12 13 13 14 19 19 20 20 21 21 22 22
+statement            : 0
+
+Parsing method: LALR
+
+state 0
+
+    (0) S' -> . statement
+    (1) statement -> . NAME = expression
+    (2) statement -> . expression
+    (3) expression -> . expression + expression
+    (4) expression -> . expression - expression
+    (5) expression -> . expression * expression
+    (6) expression -> . expression / expression
+    (7) expression -> . expression > expression
+    (8) expression -> . expression < expression
+    (9) expression -> . - expression
+    (10) expression -> . expression GE expression
+    (11) expression -> . expression LE expression
+    (12) expression -> . expression EQ expression
+    (13) expression -> . expression NE expression
+    (14) expression -> . ( expression )
+    (15) expression -> . NUMBER
+    (16) expression -> . TIME
+    (17) expression -> . BYTE
+    (18) expression -> . NAME
+    (19) expression -> . expression LOR expression
+    (20) expression -> . expression LAND expression
+    (21) expression -> . expression OR expression
+    (22) expression -> . expression AND expression
+    (23) expression -> . STRING
+    (24) expression -> . RESTRING
+
+    NAME            shift and go to state 2
+    -               shift and go to state 4
+    (               shift and go to state 5
+    NUMBER          shift and go to state 6
+    TIME            shift and go to state 7
+    BYTE            shift and go to state 8
+    STRING          shift and go to state 9
+    RESTRING        shift and go to state 10
+
+    statement                      shift and go to state 1
+    expression                     shift and go to state 3
+
+state 1
+
+    (0) S' -> statement .
+
+
+
+state 2
+
+    (1) statement -> NAME . = expression
+    (18) expression -> NAME .
+
+    =               shift and go to state 11
+    +               reduce using rule 18 (expression -> NAME .)
+    -               reduce using rule 18 (expression -> NAME .)
+    *               reduce using rule 18 (expression -> NAME .)
+    /               reduce using rule 18 (expression -> NAME .)
+    >               reduce using rule 18 (expression -> NAME .)
+    <               reduce using rule 18 (expression -> NAME .)
+    GE              reduce using rule 18 (expression -> NAME .)
+    LE              reduce using rule 18 (expression -> NAME .)
+    EQ              reduce using rule 18 (expression -> NAME .)
+    NE              reduce using rule 18 (expression -> NAME .)
+    LOR             reduce using rule 18 (expression -> NAME .)
+    LAND            reduce using rule 18 (expression -> NAME .)
+    OR              reduce using rule 18 (expression -> NAME .)
+    AND             reduce using rule 18 (expression -> NAME .)
+    $end            reduce using rule 18 (expression -> NAME .)
+
+
+state 3
+
+    (2) statement -> expression .
+    (3) expression -> expression . + expression
+    (4) expression -> expression . - expression
+    (5) expression -> expression . * expression
+    (6) expression -> expression . / expression
+    (7) expression -> expression . > expression
+    (8) expression -> expression . < expression
+    (10) expression -> expression . GE expression
+    (11) expression -> expression . LE expression
+    (12) expression -> expression . EQ expression
+    (13) expression -> expression . NE expression
+    (19) expression -> expression . LOR expression
+    (20) expression -> expression . LAND expression
+    (21) expression -> expression . OR expression
+    (22) expression -> expression . AND expression
+
+    $end            reduce using rule 2 (statement -> expression .)
+    +               shift and go to state 12
+    -               shift and go to state 13
+    *               shift and go to state 14
+    /               shift and go to state 15
+    >               shift and go to state 16
+    <               shift and go to state 17
+    GE              shift and go to state 18
+    LE              shift and go to state 19
+    EQ              shift and go to state 20
+    NE              shift and go to state 21
+    LOR             shift and go to state 22
+    LAND            shift and go to state 23
+    OR              shift and go to state 24
+    AND             shift and go to state 25
+
+
+state 4
+
+    (9) expression -> - . expression
+    (3) expression -> . expression + expression
+    (4) expression -> . expression - expression
+    (5) expression -> . expression * expression
+    (6) expression -> . expression / expression
+    (7) expression -> . expression > expression
+    (8) expression -> . expression < expression
+    (9) expression -> . - expression
+    (10) expression -> . expression GE expression
+    (11) expression -> . expression LE expression
+    (12) expression -> . expression EQ expression
+    (13) expression -> . expression NE expression
+    (14) expression -> . ( expression )
+    (15) expression -> . NUMBER
+    (16) expression -> . TIME
+    (17) expression -> . BYTE
+    (18) expression -> . NAME
+    (19) expression -> . expression LOR expression
+    (20) expression -> . expression LAND expression
+    (21) expression -> . expression OR expression
+    (22) expression -> . expression AND expression
+    (23) expression -> . STRING
+    (24) expression -> . RESTRING
+
+    -               shift and go to state 4
+    (               shift and go to state 5
+    NUMBER          shift and go to state 6
+    TIME            shift and go to state 7
+    BYTE            shift and go to state 8
+    NAME            shift and go to state 27
+    STRING          shift and go to state 9
+    RESTRING        shift and go to state 10
+
+    expression                     shift and go to state 26
+
+state 5
+
+    (14) expression -> ( . expression )
+    (3) expression -> . expression + expression
+    (4) expression -> . expression - expression
+    (5) expression -> . expression * expression
+    (6) expression -> . expression / expression
+    (7) expression -> . expression > expression
+    (8) expression -> . expression < expression
+    (9) expression -> . - expression
+    (10) expression -> . expression GE expression
+    (11) expression -> . expression LE expression
+    (12) expression -> . expression EQ expression
+    (13) expression -> . expression NE expression
+    (14) expression -> . ( expression )
+    (15) expression -> . NUMBER
+    (16) expression -> . TIME
+    (17) expression -> . BYTE
+    (18) expression -> . NAME
+    (19) expression -> . expression LOR expression
+    (20) expression -> . expression LAND expression
+    (21) expression -> . expression OR expression
+    (22) expression -> . expression AND expression
+    (23) expression -> . STRING
+    (24) expression -> . RESTRING
+
+    -               shift and go to state 4
+    (               shift and go to state 5
+    NUMBER          shift and go to state 6
+    TIME            shift and go to state 7
+    BYTE            shift and go to state 8
+    NAME            shift and go to state 27
+    STRING          shift and go to state 9
+    RESTRING        shift and go to state 10
+
+    expression                     shift and go to state 28
+
+state 6
+
+    (15) expression -> NUMBER .
+
+    +               reduce using rule 15 (expression -> NUMBER .)
+    -               reduce using rule 15 (expression -> NUMBER .)
+    *               reduce using rule 15 (expression -> NUMBER .)
+    /               reduce using rule 15 (expression -> NUMBER .)
+    >               reduce using rule 15 (expression -> NUMBER .)
+    <               reduce using rule 15 (expression -> NUMBER .)
+    GE              reduce using rule 15 (expression -> NUMBER .)
+    LE              reduce using rule 15 (expression -> NUMBER .)
+    EQ              reduce using rule 15 (expression -> NUMBER .)
+    NE              reduce using rule 15 (expression -> NUMBER .)
+    LOR             reduce using rule 15 (expression -> NUMBER .)
+    LAND            reduce using rule 15 (expression -> NUMBER .)
+    OR              reduce using rule 15 (expression -> NUMBER .)
+    AND             reduce using rule 15 (expression -> NUMBER .)
+    $end            reduce using rule 15 (expression -> NUMBER .)
+    )               reduce using rule 15 (expression -> NUMBER .)
+
+
+state 7
+
+    (16) expression -> TIME .
+
+    +               reduce using rule 16 (expression -> TIME .)
+    -               reduce using rule 16 (expression -> TIME .)
+    *               reduce using rule 16 (expression -> TIME .)
+    /               reduce using rule 16 (expression -> TIME .)
+    >               reduce using rule 16 (expression -> TIME .)
+    <               reduce using rule 16 (expression -> TIME .)
+    GE              reduce using rule 16 (expression -> TIME .)
+    LE              reduce using rule 16 (expression -> TIME .)
+    EQ              reduce using rule 16 (expression -> TIME .)
+    NE              reduce using rule 16 (expression -> TIME .)
+    LOR             reduce using rule 16 (expression -> TIME .)
+    LAND            reduce using rule 16 (expression -> TIME .)
+    OR              reduce using rule 16 (expression -> TIME .)
+    AND             reduce using rule 16 (expression -> TIME .)
+    $end            reduce using rule 16 (expression -> TIME .)
+    )               reduce using rule 16 (expression -> TIME .)
+
+
+state 8
+
+    (17) expression -> BYTE .
+
+    +               reduce using rule 17 (expression -> BYTE .)
+    -               reduce using rule 17 (expression -> BYTE .)
+    *               reduce using rule 17 (expression -> BYTE .)
+    /               reduce using rule 17 (expression -> BYTE .)
+    >               reduce using rule 17 (expression -> BYTE .)
+    <               reduce using rule 17 (expression -> BYTE .)
+    GE              reduce using rule 17 (expression -> BYTE .)
+    LE              reduce using rule 17 (expression -> BYTE .)
+    EQ              reduce using rule 17 (expression -> BYTE .)
+    NE              reduce using rule 17 (expression -> BYTE .)
+    LOR             reduce using rule 17 (expression -> BYTE .)
+    LAND            reduce using rule 17 (expression -> BYTE .)
+    OR              reduce using rule 17 (expression -> BYTE .)
+    AND             reduce using rule 17 (expression -> BYTE .)
+    $end            reduce using rule 17 (expression -> BYTE .)
+    )               reduce using rule 17 (expression -> BYTE .)
+
+
+state 9
+
+    (23) expression -> STRING .
+
+    +               reduce using rule 23 (expression -> STRING .)
+    -               reduce using rule 23 (expression -> STRING .)
+    *               reduce using rule 23 (expression -> STRING .)
+    /               reduce using rule 23 (expression -> STRING .)
+    >               reduce using rule 23 (expression -> STRING .)
+    <               reduce using rule 23 (expression -> STRING .)
+    GE              reduce using rule 23 (expression -> STRING .)
+    LE              reduce using rule 23 (expression -> STRING .)
+    EQ              reduce using rule 23 (expression -> STRING .)
+    NE              reduce using rule 23 (expression -> STRING .)
+    LOR             reduce using rule 23 (expression -> STRING .)
+    LAND            reduce using rule 23 (expression -> STRING .)
+    OR              reduce using rule 23 (expression -> STRING .)
+    AND             reduce using rule 23 (expression -> STRING .)
+    $end            reduce using rule 23 (expression -> STRING .)
+    )               reduce using rule 23 (expression -> STRING .)
+
+
+state 10
+
+    (24) expression -> RESTRING .
+
+    +               reduce using rule 24 (expression -> RESTRING .)
+    -               reduce using rule 24 (expression -> RESTRING .)
+    *               reduce using rule 24 (expression -> RESTRING .)
+    /               reduce using rule 24 (expression -> RESTRING .)
+    >               reduce using rule 24 (expression -> RESTRING .)
+    <               reduce using rule 24 (expression -> RESTRING .)
+    GE              reduce using rule 24 (expression -> RESTRING .)
+    LE              reduce using rule 24 (expression -> RESTRING .)
+    EQ              reduce using rule 24 (expression -> RESTRING .)
+    NE              reduce using rule 24 (expression -> RESTRING .)
+    LOR             reduce using rule 24 (expression -> RESTRING .)
+    LAND            reduce using rule 24 (expression -> RESTRING .)
+    OR              reduce using rule 24 (expression -> RESTRING .)
+    AND             reduce using rule 24 (expression -> RESTRING .)
+    $end            reduce using rule 24 (expression -> RESTRING .)
+    )               reduce using rule 24 (expression -> RESTRING .)
+
+
+state 11
+
+    (1) statement -> NAME = . expression
+    (3) expression -> . expression + expression
+    (4) expression -> . expression - expression
+    (5) expression -> . expression * expression
+    (6) expression -> . expression / expression
+    (7) expression -> . expression > expression
+    (8) expression -> . expression < expression
+    (9) expression -> . - expression
+    (10) expression -> . expression GE expression
+    (11) expression -> . expression LE expression
+    (12) expression -> . expression EQ expression
+    (13) expression -> . expression NE expression
+    (14) expression -> . ( expression )
+    (15) expression -> . NUMBER
+    (16) expression -> . TIME
+    (17) expression -> . BYTE
+    (18) expression -> . NAME
+    (19) expression -> . expression LOR expression
+    (20) expression -> . expression LAND expression
+    (21) expression -> . expression OR expression
+    (22) expression -> . expression AND expression
+    (23) expression -> . STRING
+    (24) expression -> . RESTRING
+
+    -               shift and go to state 4
+    (               shift and go to state 5
+    NUMBER          shift and go to state 6
+    TIME            shift and go to state 7
+    BYTE            shift and go to state 8
+    NAME            shift and go to state 27
+    STRING          shift and go to state 9
+    RESTRING        shift and go to state 10
+
+    expression                     shift and go to state 29
+
+state 12
+
+    (3) expression -> expression + . expression
+    (3) expression -> . expression + expression
+    (4) expression -> . expression - expression
+    (5) expression -> . expression * expression
+    (6) expression -> . expression / expression
+    (7) expression -> . expression > expression
+    (8) expression -> . expression < expression
+    (9) expression -> . - expression
+    (10) expression -> . expression GE expression
+    (11) expression -> . expression LE expression
+    (12) expression -> . expression EQ expression
+    (13) expression -> . expression NE expression
+    (14) expression -> . ( expression )
+    (15) expression -> . NUMBER
+    (16) expression -> . TIME
+    (17) expression -> . BYTE
+    (18) expression -> . NAME
+    (19) expression -> . expression LOR expression
+    (20) expression -> . expression LAND expression
+    (21) expression -> . expression OR expression
+    (22) expression -> . expression AND expression
+    (23) expression -> . STRING
+    (24) expression -> . RESTRING
+
+    -               shift and go to state 4
+    (               shift and go to state 5
+    NUMBER          shift and go to state 6
+    TIME            shift and go to state 7
+    BYTE            shift and go to state 8
+    NAME            shift and go to state 27
+    STRING          shift and go to state 9
+    RESTRING        shift and go to state 10
+
+    expression                     shift and go to state 30
+
+state 13
+
+    (4) expression -> expression - . expression
+    (3) expression -> . expression + expression
+    (4) expression -> . expression - expression
+    (5) expression -> . expression * expression
+    (6) expression -> . expression / expression
+    (7) expression -> . expression > expression
+    (8) expression -> . expression < expression
+    (9) expression -> . - expression
+    (10) expression -> . expression GE expression
+    (11) expression -> . expression LE expression
+    (12) expression -> . expression EQ expression
+    (13) expression -> . expression NE expression
+    (14) expression -> . ( expression )
+    (15) expression -> . NUMBER
+    (16) expression -> . TIME
+    (17) expression -> . BYTE
+    (18) expression -> . NAME
+    (19) expression -> . expression LOR expression
+    (20) expression -> . expression LAND expression
+    (21) expression -> . expression OR expression
+    (22) expression -> . expression AND expression
+    (23) expression -> . STRING
+    (24) expression -> . RESTRING
+
+    -               shift and go to state 4
+    (               shift and go to state 5
+    NUMBER          shift and go to state 6
+    TIME            shift and go to state 7
+    BYTE            shift and go to state 8
+    NAME            shift and go to state 27
+    STRING          shift and go to state 9
+    RESTRING        shift and go to state 10
+
+    expression                     shift and go to state 31
+
+state 14
+
+    (5) expression -> expression * . expression
+    (3) expression -> . expression + expression
+    (4) expression -> . expression - expression
+    (5) expression -> . expression * expression
+    (6) expression -> . expression / expression
+    (7) expression -> . expression > expression
+    (8) expression -> . expression < expression
+    (9) expression -> . - expression
+    (10) expression -> . expression GE expression
+    (11) expression -> . expression LE expression
+    (12) expression -> . expression EQ expression
+    (13) expression -> . expression NE expression
+    (14) expression -> . ( expression )
+    (15) expression -> . NUMBER
+    (16) expression -> . TIME
+    (17) expression -> . BYTE
+    (18) expression -> . NAME
+    (19) expression -> . expression LOR expression
+    (20) expression -> . expression LAND expression
+    (21) expression -> . expression OR expression
+    (22) expression -> . expression AND expression
+    (23) expression -> . STRING
+    (24) expression -> . RESTRING
+
+    -               shift and go to state 4
+    (               shift and go to state 5
+    NUMBER          shift and go to state 6
+    TIME            shift and go to state 7
+    BYTE            shift and go to state 8
+    NAME            shift and go to state 27
+    STRING          shift and go to state 9
+    RESTRING        shift and go to state 10
+
+    expression                     shift and go to state 32
+
+state 15
+
+    (6) expression -> expression / . expression
+    (3) expression -> . expression + expression
+    (4) expression -> . expression - expression
+    (5) expression -> . expression * expression
+    (6) expression -> . expression / expression
+    (7) expression -> . expression > expression
+    (8) expression -> . expression < expression
+    (9) expression -> . - expression
+    (10) expression -> . expression GE expression
+    (11) expression -> . expression LE expression
+    (12) expression -> . expression EQ expression
+    (13) expression -> . expression NE expression
+    (14) expression -> . ( expression )
+    (15) expression -> . NUMBER
+    (16) expression -> . TIME
+    (17) expression -> . BYTE
+    (18) expression -> . NAME
+    (19) expression -> . expression LOR expression
+    (20) expression -> . expression LAND expression
+    (21) expression -> . expression OR expression
+    (22) expression -> . expression AND expression
+    (23) expression -> . STRING
+    (24) expression -> . RESTRING
+
+    -               shift and go to state 4
+    (               shift and go to state 5
+    NUMBER          shift and go to state 6
+    TIME            shift and go to state 7
+    BYTE            shift and go to state 8
+    NAME            shift and go to state 27
+    STRING          shift and go to state 9
+    RESTRING        shift and go to state 10
+
+    expression                     shift and go to state 33
+
+state 16
+
+    (7) expression -> expression > . expression
+    (3) expression -> . expression + expression
+    (4) expression -> . expression - expression
+    (5) expression -> . expression * expression
+    (6) expression -> . expression / expression
+    (7) expression -> . expression > expression
+    (8) expression -> . expression < expression
+    (9) expression -> . - expression
+    (10) expression -> . expression GE expression
+    (11) expression -> . expression LE expression
+    (12) expression -> . expression EQ expression
+    (13) expression -> . expression NE expression
+    (14) expression -> . ( expression )
+    (15) expression -> . NUMBER
+    (16) expression -> . TIME
+    (17) expression -> . BYTE
+    (18) expression -> . NAME
+    (19) expression -> . expression LOR expression
+    (20) expression -> . expression LAND expression
+    (21) expression -> . expression OR expression
+    (22) expression -> . expression AND expression
+    (23) expression -> . STRING
+    (24) expression -> . RESTRING
+
+    -               shift and go to state 4
+    (               shift and go to state 5
+    NUMBER          shift and go to state 6
+    TIME            shift and go to state 7
+    BYTE            shift and go to state 8
+    NAME            shift and go to state 27
+    STRING          shift and go to state 9
+    RESTRING        shift and go to state 10
+
+    expression                     shift and go to state 34
+
+state 17
+
+    (8) expression -> expression < . expression
+    (3) expression -> . expression + expression
+    (4) expression -> . expression - expression
+    (5) expression -> . expression * expression
+    (6) expression -> . expression / expression
+    (7) expression -> . expression > expression
+    (8) expression -> . expression < expression
+    (9) expression -> . - expression
+    (10) expression -> . expression GE expression
+    (11) expression -> . expression LE expression
+    (12) expression -> . expression EQ expression
+    (13) expression -> . expression NE expression
+    (14) expression -> . ( expression )
+    (15) expression -> . NUMBER
+    (16) expression -> . TIME
+    (17) expression -> . BYTE
+    (18) expression -> . NAME
+    (19) expression -> . expression LOR expression
+    (20) expression -> . expression LAND expression
+    (21) expression -> . expression OR expression
+    (22) expression -> . expression AND expression
+    (23) expression -> . STRING
+    (24) expression -> . RESTRING
+
+    -               shift and go to state 4
+    (               shift and go to state 5
+    NUMBER          shift and go to state 6
+    TIME            shift and go to state 7
+    BYTE            shift and go to state 8
+    NAME            shift and go to state 27
+    STRING          shift and go to state 9
+    RESTRING        shift and go to state 10
+
+    expression                     shift and go to state 35
+
+state 18
+
+    (10) expression -> expression GE . expression
+    (3) expression -> . expression + expression
+    (4) expression -> . expression - expression
+    (5) expression -> . expression * expression
+    (6) expression -> . expression / expression
+    (7) expression -> . expression > expression
+    (8) expression -> . expression < expression
+    (9) expression -> . - expression
+    (10) expression -> . expression GE expression
+    (11) expression -> . expression LE expression
+    (12) expression -> . expression EQ expression
+    (13) expression -> . expression NE expression
+    (14) expression -> . ( expression )
+    (15) expression -> . NUMBER
+    (16) expression -> . TIME
+    (17) expression -> . BYTE
+    (18) expression -> . NAME
+    (19) expression -> . expression LOR expression
+    (20) expression -> . expression LAND expression
+    (21) expression -> . expression OR expression
+    (22) expression -> . expression AND expression
+    (23) expression -> . STRING
+    (24) expression -> . RESTRING
+
+    -               shift and go to state 4
+    (               shift and go to state 5
+    NUMBER          shift and go to state 6
+    TIME            shift and go to state 7
+    BYTE            shift and go to state 8
+    NAME            shift and go to state 27
+    STRING          shift and go to state 9
+    RESTRING        shift and go to state 10
+
+    expression                     shift and go to state 36
+
+state 19
+
+    (11) expression -> expression LE . expression
+    (3) expression -> . expression + expression
+    (4) expression -> . expression - expression
+    (5) expression -> . expression * expression
+    (6) expression -> . expression / expression
+    (7) expression -> . expression > expression
+    (8) expression -> . expression < expression
+    (9) expression -> . - expression
+    (10) expression -> . expression GE expression
+    (11) expression -> . expression LE expression
+    (12) expression -> . expression EQ expression
+    (13) expression -> . expression NE expression
+    (14) expression -> . ( expression )
+    (15) expression -> . NUMBER
+    (16) expression -> . TIME
+    (17) expression -> . BYTE
+    (18) expression -> . NAME
+    (19) expression -> . expression LOR expression
+    (20) expression -> . expression LAND expression
+    (21) expression -> . expression OR expression
+    (22) expression -> . expression AND expression
+    (23) expression -> . STRING
+    (24) expression -> . RESTRING
+
+    -               shift and go to state 4
+    (               shift and go to state 5
+    NUMBER          shift and go to state 6
+    TIME            shift and go to state 7
+    BYTE            shift and go to state 8
+    NAME            shift and go to state 27
+    STRING          shift and go to state 9
+    RESTRING        shift and go to state 10
+
+    expression                     shift and go to state 37
+
+state 20
+
+    (12) expression -> expression EQ . expression
+    (3) expression -> . expression + expression
+    (4) expression -> . expression - expression
+    (5) expression -> . expression * expression
+    (6) expression -> . expression / expression
+    (7) expression -> . expression > expression
+    (8) expression -> . expression < expression
+    (9) expression -> . - expression
+    (10) expression -> . expression GE expression
+    (11) expression -> . expression LE expression
+    (12) expression -> . expression EQ expression
+    (13) expression -> . expression NE expression
+    (14) expression -> . ( expression )
+    (15) expression -> . NUMBER
+    (16) expression -> . TIME
+    (17) expression -> . BYTE
+    (18) expression -> . NAME
+    (19) expression -> . expression LOR expression
+    (20) expression -> . expression LAND expression
+    (21) expression -> . expression OR expression
+    (22) expression -> . expression AND expression
+    (23) expression -> . STRING
+    (24) expression -> . RESTRING
+
+    -               shift and go to state 4
+    (               shift and go to state 5
+    NUMBER          shift and go to state 6
+    TIME            shift and go to state 7
+    BYTE            shift and go to state 8
+    NAME            shift and go to state 27
+    STRING          shift and go to state 9
+    RESTRING        shift and go to state 10
+
+    expression                     shift and go to state 38
+
+state 21
+
+    (13) expression -> expression NE . expression
+    (3) expression -> . expression + expression
+    (4) expression -> . expression - expression
+    (5) expression -> . expression * expression
+    (6) expression -> . expression / expression
+    (7) expression -> . expression > expression
+    (8) expression -> . expression < expression
+    (9) expression -> . - expression
+    (10) expression -> . expression GE expression
+    (11) expression -> . expression LE expression
+    (12) expression -> . expression EQ expression
+    (13) expression -> . expression NE expression
+    (14) expression -> . ( expression )
+    (15) expression -> . NUMBER
+    (16) expression -> . TIME
+    (17) expression -> . BYTE
+    (18) expression -> . NAME
+    (19) expression -> . expression LOR expression
+    (20) expression -> . expression LAND expression
+    (21) expression -> . expression OR expression
+    (22) expression -> . expression AND expression
+    (23) expression -> . STRING
+    (24) expression -> . RESTRING
+
+    -               shift and go to state 4
+    (               shift and go to state 5
+    NUMBER          shift and go to state 6
+    TIME            shift and go to state 7
+    BYTE            shift and go to state 8
+    NAME            shift and go to state 27
+    STRING          shift and go to state 9
+    RESTRING        shift and go to state 10
+
+    expression                     shift and go to state 39
+
+state 22
+
+    (19) expression -> expression LOR . expression
+    (3) expression -> . expression + expression
+    (4) expression -> . expression - expression
+    (5) expression -> . expression * expression
+    (6) expression -> . expression / expression
+    (7) expression -> . expression > expression
+    (8) expression -> . expression < expression
+    (9) expression -> . - expression
+    (10) expression -> . expression GE expression
+    (11) expression -> . expression LE expression
+    (12) expression -> . expression EQ expression
+    (13) expression -> . expression NE expression
+    (14) expression -> . ( expression )
+    (15) expression -> . NUMBER
+    (16) expression -> . TIME
+    (17) expression -> . BYTE
+    (18) expression -> . NAME
+    (19) expression -> . expression LOR expression
+    (20) expression -> . expression LAND expression
+    (21) expression -> . expression OR expression
+    (22) expression -> . expression AND expression
+    (23) expression -> . STRING
+    (24) expression -> . RESTRING
+
+    -               shift and go to state 4
+    (               shift and go to state 5
+    NUMBER          shift and go to state 6
+    TIME            shift and go to state 7
+    BYTE            shift and go to state 8
+    NAME            shift and go to state 27
+    STRING          shift and go to state 9
+    RESTRING        shift and go to state 10
+
+    expression                     shift and go to state 40
+
+state 23
+
+    (20) expression -> expression LAND . expression
+    (3) expression -> . expression + expression
+    (4) expression -> . expression - expression
+    (5) expression -> . expression * expression
+    (6) expression -> . expression / expression
+    (7) expression -> . expression > expression
+    (8) expression -> . expression < expression
+    (9) expression -> . - expression
+    (10) expression -> . expression GE expression
+    (11) expression -> . expression LE expression
+    (12) expression -> . expression EQ expression
+    (13) expression -> . expression NE expression
+    (14) expression -> . ( expression )
+    (15) expression -> . NUMBER
+    (16) expression -> . TIME
+    (17) expression -> . BYTE
+    (18) expression -> . NAME
+    (19) expression -> . expression LOR expression
+    (20) expression -> . expression LAND expression
+    (21) expression -> . expression OR expression
+    (22) expression -> . expression AND expression
+    (23) expression -> . STRING
+    (24) expression -> . RESTRING
+
+    -               shift and go to state 4
+    (               shift and go to state 5
+    NUMBER          shift and go to state 6
+    TIME            shift and go to state 7
+    BYTE            shift and go to state 8
+    NAME            shift and go to state 27
+    STRING          shift and go to state 9
+    RESTRING        shift and go to state 10
+
+    expression                     shift and go to state 41
+
+state 24
+
+    (21) expression -> expression OR . expression
+    (3) expression -> . expression + expression
+    (4) expression -> . expression - expression
+    (5) expression -> . expression * expression
+    (6) expression -> . expression / expression
+    (7) expression -> . expression > expression
+    (8) expression -> . expression < expression
+    (9) expression -> . - expression
+    (10) expression -> . expression GE expression
+    (11) expression -> . expression LE expression
+    (12) expression -> . expression EQ expression
+    (13) expression -> . expression NE expression
+    (14) expression -> . ( expression )
+    (15) expression -> . NUMBER
+    (16) expression -> . TIME
+    (17) expression -> . BYTE
+    (18) expression -> . NAME
+    (19) expression -> . expression LOR expression
+    (20) expression -> . expression LAND expression
+    (21) expression -> . expression OR expression
+    (22) expression -> . expression AND expression
+    (23) expression -> . STRING
+    (24) expression -> . RESTRING
+
+    -               shift and go to state 4
+    (               shift and go to state 5
+    NUMBER          shift and go to state 6
+    TIME            shift and go to state 7
+    BYTE            shift and go to state 8
+    NAME            shift and go to state 27
+    STRING          shift and go to state 9
+    RESTRING        shift and go to state 10
+
+    expression                     shift and go to state 42
+
+state 25
+
+    (22) expression -> expression AND . expression
+    (3) expression -> . expression + expression
+    (4) expression -> . expression - expression
+    (5) expression -> . expression * expression
+    (6) expression -> . expression / expression
+    (7) expression -> . expression > expression
+    (8) expression -> . expression < expression
+    (9) expression -> . - expression
+    (10) expression -> . expression GE expression
+    (11) expression -> . expression LE expression
+    (12) expression -> . expression EQ expression
+    (13) expression -> . expression NE expression
+    (14) expression -> . ( expression )
+    (15) expression -> . NUMBER
+    (16) expression -> . TIME
+    (17) expression -> . BYTE
+    (18) expression -> . NAME
+    (19) expression -> . expression LOR expression
+    (20) expression -> . expression LAND expression
+    (21) expression -> . expression OR expression
+    (22) expression -> . expression AND expression
+    (23) expression -> . STRING
+    (24) expression -> . RESTRING
+
+    -               shift and go to state 4
+    (               shift and go to state 5
+    NUMBER          shift and go to state 6
+    TIME            shift and go to state 7
+    BYTE            shift and go to state 8
+    NAME            shift and go to state 27
+    STRING          shift and go to state 9
+    RESTRING        shift and go to state 10
+
+    expression                     shift and go to state 43
+
+state 26
+
+    (9) expression -> - expression .
+    (3) expression -> expression . + expression
+    (4) expression -> expression . - expression
+    (5) expression -> expression . * expression
+    (6) expression -> expression . / expression
+    (7) expression -> expression . > expression
+    (8) expression -> expression . < expression
+    (10) expression -> expression . GE expression
+    (11) expression -> expression . LE expression
+    (12) expression -> expression . EQ expression
+    (13) expression -> expression . NE expression
+    (19) expression -> expression . LOR expression
+    (20) expression -> expression . LAND expression
+    (21) expression -> expression . OR expression
+    (22) expression -> expression . AND expression
+
+    +               reduce using rule 9 (expression -> - expression .)
+    -               reduce using rule 9 (expression -> - expression .)
+    *               reduce using rule 9 (expression -> - expression .)
+    /               reduce using rule 9 (expression -> - expression .)
+    >               reduce using rule 9 (expression -> - expression .)
+    <               reduce using rule 9 (expression -> - expression .)
+    GE              reduce using rule 9 (expression -> - expression .)
+    LE              reduce using rule 9 (expression -> - expression .)
+    EQ              reduce using rule 9 (expression -> - expression .)
+    NE              reduce using rule 9 (expression -> - expression .)
+    LOR             reduce using rule 9 (expression -> - expression .)
+    LAND            reduce using rule 9 (expression -> - expression .)
+    OR              reduce using rule 9 (expression -> - expression .)
+    AND             reduce using rule 9 (expression -> - expression .)
+    $end            reduce using rule 9 (expression -> - expression .)
+    )               reduce using rule 9 (expression -> - expression .)
+
+  ! +               [ shift and go to state 12 ]
+  ! -               [ shift and go to state 13 ]
+  ! *               [ shift and go to state 14 ]
+  ! /               [ shift and go to state 15 ]
+  ! >               [ shift and go to state 16 ]
+  ! <               [ shift and go to state 17 ]
+  ! GE              [ shift and go to state 18 ]
+  ! LE              [ shift and go to state 19 ]
+  ! EQ              [ shift and go to state 20 ]
+  ! NE              [ shift and go to state 21 ]
+  ! LOR             [ shift and go to state 22 ]
+  ! LAND            [ shift and go to state 23 ]
+  ! OR              [ shift and go to state 24 ]
+  ! AND             [ shift and go to state 25 ]
+
+
+state 27
+
+    (18) expression -> NAME .
+
+    +               reduce using rule 18 (expression -> NAME .)
+    -               reduce using rule 18 (expression -> NAME .)
+    *               reduce using rule 18 (expression -> NAME .)
+    /               reduce using rule 18 (expression -> NAME .)
+    >               reduce using rule 18 (expression -> NAME .)
+    <               reduce using rule 18 (expression -> NAME .)
+    GE              reduce using rule 18 (expression -> NAME .)
+    LE              reduce using rule 18 (expression -> NAME .)
+    EQ              reduce using rule 18 (expression -> NAME .)
+    NE              reduce using rule 18 (expression -> NAME .)
+    LOR             reduce using rule 18 (expression -> NAME .)
+    LAND            reduce using rule 18 (expression -> NAME .)
+    OR              reduce using rule 18 (expression -> NAME .)
+    AND             reduce using rule 18 (expression -> NAME .)
+    $end            reduce using rule 18 (expression -> NAME .)
+    )               reduce using rule 18 (expression -> NAME .)
+
+
+state 28
+
+    (14) expression -> ( expression . )
+    (3) expression -> expression . + expression
+    (4) expression -> expression . - expression
+    (5) expression -> expression . * expression
+    (6) expression -> expression . / expression
+    (7) expression -> expression . > expression
+    (8) expression -> expression . < expression
+    (10) expression -> expression . GE expression
+    (11) expression -> expression . LE expression
+    (12) expression -> expression . EQ expression
+    (13) expression -> expression . NE expression
+    (19) expression -> expression . LOR expression
+    (20) expression -> expression . LAND expression
+    (21) expression -> expression . OR expression
+    (22) expression -> expression . AND expression
+
+    )               shift and go to state 44
+    +               shift and go to state 12
+    -               shift and go to state 13
+    *               shift and go to state 14
+    /               shift and go to state 15
+    >               shift and go to state 16
+    <               shift and go to state 17
+    GE              shift and go to state 18
+    LE              shift and go to state 19
+    EQ              shift and go to state 20
+    NE              shift and go to state 21
+    LOR             shift and go to state 22
+    LAND            shift and go to state 23
+    OR              shift and go to state 24
+    AND             shift and go to state 25
+
+
+state 29
+
+    (1) statement -> NAME = expression .
+    (3) expression -> expression . + expression
+    (4) expression -> expression . - expression
+    (5) expression -> expression . * expression
+    (6) expression -> expression . / expression
+    (7) expression -> expression . > expression
+    (8) expression -> expression . < expression
+    (10) expression -> expression . GE expression
+    (11) expression -> expression . LE expression
+    (12) expression -> expression . EQ expression
+    (13) expression -> expression . NE expression
+    (19) expression -> expression . LOR expression
+    (20) expression -> expression . LAND expression
+    (21) expression -> expression . OR expression
+    (22) expression -> expression . AND expression
+
+    $end            reduce using rule 1 (statement -> NAME = expression .)
+    +               shift and go to state 12
+    -               shift and go to state 13
+    *               shift and go to state 14
+    /               shift and go to state 15
+    >               shift and go to state 16
+    <               shift and go to state 17
+    GE              shift and go to state 18
+    LE              shift and go to state 19
+    EQ              shift and go to state 20
+    NE              shift and go to state 21
+    LOR             shift and go to state 22
+    LAND            shift and go to state 23
+    OR              shift and go to state 24
+    AND             shift and go to state 25
+
+
+state 30
+
+    (3) expression -> expression + expression .
+    (3) expression -> expression . + expression
+    (4) expression -> expression . - expression
+    (5) expression -> expression . * expression
+    (6) expression -> expression . / expression
+    (7) expression -> expression . > expression
+    (8) expression -> expression . < expression
+    (10) expression -> expression . GE expression
+    (11) expression -> expression . LE expression
+    (12) expression -> expression . EQ expression
+    (13) expression -> expression . NE expression
+    (19) expression -> expression . LOR expression
+    (20) expression -> expression . LAND expression
+    (21) expression -> expression . OR expression
+    (22) expression -> expression . AND expression
+
+    +               reduce using rule 3 (expression -> expression + expression .)
+    -               reduce using rule 3 (expression -> expression + expression .)
+    >               reduce using rule 3 (expression -> expression + expression .)
+    <               reduce using rule 3 (expression -> expression + expression .)
+    GE              reduce using rule 3 (expression -> expression + expression .)
+    LE              reduce using rule 3 (expression -> expression + expression .)
+    EQ              reduce using rule 3 (expression -> expression + expression .)
+    NE              reduce using rule 3 (expression -> expression + expression .)
+    LOR             reduce using rule 3 (expression -> expression + expression .)
+    LAND            reduce using rule 3 (expression -> expression + expression .)
+    OR              reduce using rule 3 (expression -> expression + expression .)
+    AND             reduce using rule 3 (expression -> expression + expression .)
+    $end            reduce using rule 3 (expression -> expression + expression .)
+    )               reduce using rule 3 (expression -> expression + expression .)
+    *               shift and go to state 14
+    /               shift and go to state 15
+
+  ! *               [ reduce using rule 3 (expression -> expression + expression .) ]
+  ! /               [ reduce using rule 3 (expression -> expression + expression .) ]
+  ! +               [ shift and go to state 12 ]
+  ! -               [ shift and go to state 13 ]
+  ! >               [ shift and go to state 16 ]
+  ! <               [ shift and go to state 17 ]
+  ! GE              [ shift and go to state 18 ]
+  ! LE              [ shift and go to state 19 ]
+  ! EQ              [ shift and go to state 20 ]
+  ! NE              [ shift and go to state 21 ]
+  ! LOR             [ shift and go to state 22 ]
+  ! LAND            [ shift and go to state 23 ]
+  ! OR              [ shift and go to state 24 ]
+  ! AND             [ shift and go to state 25 ]
+
+
+state 31
+
+    (4) expression -> expression - expression .
+    (3) expression -> expression . + expression
+    (4) expression -> expression . - expression
+    (5) expression -> expression . * expression
+    (6) expression -> expression . / expression
+    (7) expression -> expression . > expression
+    (8) expression -> expression . < expression
+    (10) expression -> expression . GE expression
+    (11) expression -> expression . LE expression
+    (12) expression -> expression . EQ expression
+    (13) expression -> expression . NE expression
+    (19) expression -> expression . LOR expression
+    (20) expression -> expression . LAND expression
+    (21) expression -> expression . OR expression
+    (22) expression -> expression . AND expression
+
+    +               reduce using rule 4 (expression -> expression - expression .)
+    -               reduce using rule 4 (expression -> expression - expression .)
+    >               reduce using rule 4 (expression -> expression - expression .)
+    <               reduce using rule 4 (expression -> expression - expression .)
+    GE              reduce using rule 4 (expression -> expression - expression .)
+    LE              reduce using rule 4 (expression -> expression - expression .)
+    EQ              reduce using rule 4 (expression -> expression - expression .)
+    NE              reduce using rule 4 (expression -> expression - expression .)
+    LOR             reduce using rule 4 (expression -> expression - expression .)
+    LAND            reduce using rule 4 (expression -> expression - expression .)
+    OR              reduce using rule 4 (expression -> expression - expression .)
+    AND             reduce using rule 4 (expression -> expression - expression .)
+    $end            reduce using rule 4 (expression -> expression - expression .)
+    )               reduce using rule 4 (expression -> expression - expression .)
+    *               shift and go to state 14
+    /               shift and go to state 15
+
+  ! *               [ reduce using rule 4 (expression -> expression - expression .) ]
+  ! /               [ reduce using rule 4 (expression -> expression - expression .) ]
+  ! +               [ shift and go to state 12 ]
+  ! -               [ shift and go to state 13 ]
+  ! >               [ shift and go to state 16 ]
+  ! <               [ shift and go to state 17 ]
+  ! GE              [ shift and go to state 18 ]
+  ! LE              [ shift and go to state 19 ]
+  ! EQ              [ shift and go to state 20 ]
+  ! NE              [ shift and go to state 21 ]
+  ! LOR             [ shift and go to state 22 ]
+  ! LAND            [ shift and go to state 23 ]
+  ! OR              [ shift and go to state 24 ]
+  ! AND             [ shift and go to state 25 ]
+
+
+state 32
+
+    (5) expression -> expression * expression .
+    (3) expression -> expression . + expression
+    (4) expression -> expression . - expression
+    (5) expression -> expression . * expression
+    (6) expression -> expression . / expression
+    (7) expression -> expression . > expression
+    (8) expression -> expression . < expression
+    (10) expression -> expression . GE expression
+    (11) expression -> expression . LE expression
+    (12) expression -> expression . EQ expression
+    (13) expression -> expression . NE expression
+    (19) expression -> expression . LOR expression
+    (20) expression -> expression . LAND expression
+    (21) expression -> expression . OR expression
+    (22) expression -> expression . AND expression
+
+    +               reduce using rule 5 (expression -> expression * expression .)
+    -               reduce using rule 5 (expression -> expression * expression .)
+    *               reduce using rule 5 (expression -> expression * expression .)
+    /               reduce using rule 5 (expression -> expression * expression .)
+    >               reduce using rule 5 (expression -> expression * expression .)
+    <               reduce using rule 5 (expression -> expression * expression .)
+    GE              reduce using rule 5 (expression -> expression * expression .)
+    LE              reduce using rule 5 (expression -> expression * expression .)
+    EQ              reduce using rule 5 (expression -> expression * expression .)
+    NE              reduce using rule 5 (expression -> expression * expression .)
+    LOR             reduce using rule 5 (expression -> expression * expression .)
+    LAND            reduce using rule 5 (expression -> expression * expression .)
+    OR              reduce using rule 5 (expression -> expression * expression .)
+    AND             reduce using rule 5 (expression -> expression * expression .)
+    $end            reduce using rule 5 (expression -> expression * expression .)
+    )               reduce using rule 5 (expression -> expression * expression .)
+
+  ! +               [ shift and go to state 12 ]
+  ! -               [ shift and go to state 13 ]
+  ! *               [ shift and go to state 14 ]
+  ! /               [ shift and go to state 15 ]
+  ! >               [ shift and go to state 16 ]
+  ! <               [ shift and go to state 17 ]
+  ! GE              [ shift and go to state 18 ]
+  ! LE              [ shift and go to state 19 ]
+  ! EQ              [ shift and go to state 20 ]
+  ! NE              [ shift and go to state 21 ]
+  ! LOR             [ shift and go to state 22 ]
+  ! LAND            [ shift and go to state 23 ]
+  ! OR              [ shift and go to state 24 ]
+  ! AND             [ shift and go to state 25 ]
+
+
+state 33
+
+    (6) expression -> expression / expression .
+    (3) expression -> expression . + expression
+    (4) expression -> expression . - expression
+    (5) expression -> expression . * expression
+    (6) expression -> expression . / expression
+    (7) expression -> expression . > expression
+    (8) expression -> expression . < expression
+    (10) expression -> expression . GE expression
+    (11) expression -> expression . LE expression
+    (12) expression -> expression . EQ expression
+    (13) expression -> expression . NE expression
+    (19) expression -> expression . LOR expression
+    (20) expression -> expression . LAND expression
+    (21) expression -> expression . OR expression
+    (22) expression -> expression . AND expression
+
+    +               reduce using rule 6 (expression -> expression / expression .)
+    -               reduce using rule 6 (expression -> expression / expression .)
+    *               reduce using rule 6 (expression -> expression / expression .)
+    /               reduce using rule 6 (expression -> expression / expression .)
+    >               reduce using rule 6 (expression -> expression / expression .)
+    <               reduce using rule 6 (expression -> expression / expression .)
+    GE              reduce using rule 6 (expression -> expression / expression .)
+    LE              reduce using rule 6 (expression -> expression / expression .)
+    EQ              reduce using rule 6 (expression -> expression / expression .)
+    NE              reduce using rule 6 (expression -> expression / expression .)
+    LOR             reduce using rule 6 (expression -> expression / expression .)
+    LAND            reduce using rule 6 (expression -> expression / expression .)
+    OR              reduce using rule 6 (expression -> expression / expression .)
+    AND             reduce using rule 6 (expression -> expression / expression .)
+    $end            reduce using rule 6 (expression -> expression / expression .)
+    )               reduce using rule 6 (expression -> expression / expression .)
+
+  ! +               [ shift and go to state 12 ]
+  ! -               [ shift and go to state 13 ]
+  ! *               [ shift and go to state 14 ]
+  ! /               [ shift and go to state 15 ]
+  ! >               [ shift and go to state 16 ]
+  ! <               [ shift and go to state 17 ]
+  ! GE              [ shift and go to state 18 ]
+  ! LE              [ shift and go to state 19 ]
+  ! EQ              [ shift and go to state 20 ]
+  ! NE              [ shift and go to state 21 ]
+  ! LOR             [ shift and go to state 22 ]
+  ! LAND            [ shift and go to state 23 ]
+  ! OR              [ shift and go to state 24 ]
+  ! AND             [ shift and go to state 25 ]
+
+
+state 34
+
+    (7) expression -> expression > expression .
+    (3) expression -> expression . + expression
+    (4) expression -> expression . - expression
+    (5) expression -> expression . * expression
+    (6) expression -> expression . / expression
+    (7) expression -> expression . > expression
+    (8) expression -> expression . < expression
+    (10) expression -> expression . GE expression
+    (11) expression -> expression . LE expression
+    (12) expression -> expression . EQ expression
+    (13) expression -> expression . NE expression
+    (19) expression -> expression . LOR expression
+    (20) expression -> expression . LAND expression
+    (21) expression -> expression . OR expression
+    (22) expression -> expression . AND expression
+
+    >               reduce using rule 7 (expression -> expression > expression .)
+    <               reduce using rule 7 (expression -> expression > expression .)
+    GE              reduce using rule 7 (expression -> expression > expression .)
+    LE              reduce using rule 7 (expression -> expression > expression .)
+    EQ              reduce using rule 7 (expression -> expression > expression .)
+    NE              reduce using rule 7 (expression -> expression > expression .)
+    LOR             reduce using rule 7 (expression -> expression > expression .)
+    LAND            reduce using rule 7 (expression -> expression > expression .)
+    OR              reduce using rule 7 (expression -> expression > expression .)
+    AND             reduce using rule 7 (expression -> expression > expression .)
+    $end            reduce using rule 7 (expression -> expression > expression .)
+    )               reduce using rule 7 (expression -> expression > expression .)
+    +               shift and go to state 12
+    -               shift and go to state 13
+    *               shift and go to state 14
+    /               shift and go to state 15
+
+  ! +               [ reduce using rule 7 (expression -> expression > expression .) ]
+  ! -               [ reduce using rule 7 (expression -> expression > expression .) ]
+  ! *               [ reduce using rule 7 (expression -> expression > expression .) ]
+  ! /               [ reduce using rule 7 (expression -> expression > expression .) ]
+  ! >               [ shift and go to state 16 ]
+  ! <               [ shift and go to state 17 ]
+  ! GE              [ shift and go to state 18 ]
+  ! LE              [ shift and go to state 19 ]
+  ! EQ              [ shift and go to state 20 ]
+  ! NE              [ shift and go to state 21 ]
+  ! LOR             [ shift and go to state 22 ]
+  ! LAND            [ shift and go to state 23 ]
+  ! OR              [ shift and go to state 24 ]
+  ! AND             [ shift and go to state 25 ]
+
+
+state 35
+
+    (8) expression -> expression < expression .
+    (3) expression -> expression . + expression
+    (4) expression -> expression . - expression
+    (5) expression -> expression . * expression
+    (6) expression -> expression . / expression
+    (7) expression -> expression . > expression
+    (8) expression -> expression . < expression
+    (10) expression -> expression . GE expression
+    (11) expression -> expression . LE expression
+    (12) expression -> expression . EQ expression
+    (13) expression -> expression . NE expression
+    (19) expression -> expression . LOR expression
+    (20) expression -> expression . LAND expression
+    (21) expression -> expression . OR expression
+    (22) expression -> expression . AND expression
+
+    >               reduce using rule 8 (expression -> expression < expression .)
+    <               reduce using rule 8 (expression -> expression < expression .)
+    GE              reduce using rule 8 (expression -> expression < expression .)
+    LE              reduce using rule 8 (expression -> expression < expression .)
+    EQ              reduce using rule 8 (expression -> expression < expression .)
+    NE              reduce using rule 8 (expression -> expression < expression .)
+    LOR             reduce using rule 8 (expression -> expression < expression .)
+    LAND            reduce using rule 8 (expression -> expression < expression .)
+    OR              reduce using rule 8 (expression -> expression < expression .)
+    AND             reduce using rule 8 (expression -> expression < expression .)
+    $end            reduce using rule 8 (expression -> expression < expression .)
+    )               reduce using rule 8 (expression -> expression < expression .)
+    +               shift and go to state 12
+    -               shift and go to state 13
+    *               shift and go to state 14
+    /               shift and go to state 15
+
+  ! +               [ reduce using rule 8 (expression -> expression < expression .) ]
+  ! -               [ reduce using rule 8 (expression -> expression < expression .) ]
+  ! *               [ reduce using rule 8 (expression -> expression < expression .) ]
+  ! /               [ reduce using rule 8 (expression -> expression < expression .) ]
+  ! >               [ shift and go to state 16 ]
+  ! <               [ shift and go to state 17 ]
+  ! GE              [ shift and go to state 18 ]
+  ! LE              [ shift and go to state 19 ]
+  ! EQ              [ shift and go to state 20 ]
+  ! NE              [ shift and go to state 21 ]
+  ! LOR             [ shift and go to state 22 ]
+  ! LAND            [ shift and go to state 23 ]
+  ! OR              [ shift and go to state 24 ]
+  ! AND             [ shift and go to state 25 ]
+
+
+state 36
+
+    (10) expression -> expression GE expression .
+    (3) expression -> expression . + expression
+    (4) expression -> expression . - expression
+    (5) expression -> expression . * expression
+    (6) expression -> expression . / expression
+    (7) expression -> expression . > expression
+    (8) expression -> expression . < expression
+    (10) expression -> expression . GE expression
+    (11) expression -> expression . LE expression
+    (12) expression -> expression . EQ expression
+    (13) expression -> expression . NE expression
+    (19) expression -> expression . LOR expression
+    (20) expression -> expression . LAND expression
+    (21) expression -> expression . OR expression
+    (22) expression -> expression . AND expression
+
+    >               reduce using rule 10 (expression -> expression GE expression .)
+    <               reduce using rule 10 (expression -> expression GE expression .)
+    GE              reduce using rule 10 (expression -> expression GE expression .)
+    LE              reduce using rule 10 (expression -> expression GE expression .)
+    EQ              reduce using rule 10 (expression -> expression GE expression .)
+    NE              reduce using rule 10 (expression -> expression GE expression .)
+    LOR             reduce using rule 10 (expression -> expression GE expression .)
+    LAND            reduce using rule 10 (expression -> expression GE expression .)
+    OR              reduce using rule 10 (expression -> expression GE expression .)
+    AND             reduce using rule 10 (expression -> expression GE expression .)
+    $end            reduce using rule 10 (expression -> expression GE expression .)
+    )               reduce using rule 10 (expression -> expression GE expression .)
+    +               shift and go to state 12
+    -               shift and go to state 13
+    *               shift and go to state 14
+    /               shift and go to state 15
+
+  ! +               [ reduce using rule 10 (expression -> expression GE expression .) ]
+  ! -               [ reduce using rule 10 (expression -> expression GE expression .) ]
+  ! *               [ reduce using rule 10 (expression -> expression GE expression .) ]
+  ! /               [ reduce using rule 10 (expression -> expression GE expression .) ]
+  ! >               [ shift and go to state 16 ]
+  ! <               [ shift and go to state 17 ]
+  ! GE              [ shift and go to state 18 ]
+  ! LE              [ shift and go to state 19 ]
+  ! EQ              [ shift and go to state 20 ]
+  ! NE              [ shift and go to state 21 ]
+  ! LOR             [ shift and go to state 22 ]
+  ! LAND            [ shift and go to state 23 ]
+  ! OR              [ shift and go to state 24 ]
+  ! AND             [ shift and go to state 25 ]
+
+
+state 37
+
+    (11) expression -> expression LE expression .
+    (3) expression -> expression . + expression
+    (4) expression -> expression . - expression
+    (5) expression -> expression . * expression
+    (6) expression -> expression . / expression
+    (7) expression -> expression . > expression
+    (8) expression -> expression . < expression
+    (10) expression -> expression . GE expression
+    (11) expression -> expression . LE expression
+    (12) expression -> expression . EQ expression
+    (13) expression -> expression . NE expression
+    (19) expression -> expression . LOR expression
+    (20) expression -> expression . LAND expression
+    (21) expression -> expression . OR expression
+    (22) expression -> expression . AND expression
+
+    >               reduce using rule 11 (expression -> expression LE expression .)
+    <               reduce using rule 11 (expression -> expression LE expression .)
+    GE              reduce using rule 11 (expression -> expression LE expression .)
+    LE              reduce using rule 11 (expression -> expression LE expression .)
+    EQ              reduce using rule 11 (expression -> expression LE expression .)
+    NE              reduce using rule 11 (expression -> expression LE expression .)
+    LOR             reduce using rule 11 (expression -> expression LE expression .)
+    LAND            reduce using rule 11 (expression -> expression LE expression .)
+    OR              reduce using rule 11 (expression -> expression LE expression .)
+    AND             reduce using rule 11 (expression -> expression LE expression .)
+    $end            reduce using rule 11 (expression -> expression LE expression .)
+    )               reduce using rule 11 (expression -> expression LE expression .)
+    +               shift and go to state 12
+    -               shift and go to state 13
+    *               shift and go to state 14
+    /               shift and go to state 15
+
+  ! +               [ reduce using rule 11 (expression -> expression LE expression .) ]
+  ! -               [ reduce using rule 11 (expression -> expression LE expression .) ]
+  ! *               [ reduce using rule 11 (expression -> expression LE expression .) ]
+  ! /               [ reduce using rule 11 (expression -> expression LE expression .) ]
+  ! >               [ shift and go to state 16 ]
+  ! <               [ shift and go to state 17 ]
+  ! GE              [ shift and go to state 18 ]
+  ! LE              [ shift and go to state 19 ]
+  ! EQ              [ shift and go to state 20 ]
+  ! NE              [ shift and go to state 21 ]
+  ! LOR             [ shift and go to state 22 ]
+  ! LAND            [ shift and go to state 23 ]
+  ! OR              [ shift and go to state 24 ]
+  ! AND             [ shift and go to state 25 ]
+
+
+state 38
+
+    (12) expression -> expression EQ expression .
+    (3) expression -> expression . + expression
+    (4) expression -> expression . - expression
+    (5) expression -> expression . * expression
+    (6) expression -> expression . / expression
+    (7) expression -> expression . > expression
+    (8) expression -> expression . < expression
+    (10) expression -> expression . GE expression
+    (11) expression -> expression . LE expression
+    (12) expression -> expression . EQ expression
+    (13) expression -> expression . NE expression
+    (19) expression -> expression . LOR expression
+    (20) expression -> expression . LAND expression
+    (21) expression -> expression . OR expression
+    (22) expression -> expression . AND expression
+
+    EQ              reduce using rule 12 (expression -> expression EQ expression .)
+    NE              reduce using rule 12 (expression -> expression EQ expression .)
+    LOR             reduce using rule 12 (expression -> expression EQ expression .)
+    LAND            reduce using rule 12 (expression -> expression EQ expression .)
+    OR              reduce using rule 12 (expression -> expression EQ expression .)
+    AND             reduce using rule 12 (expression -> expression EQ expression .)
+    $end            reduce using rule 12 (expression -> expression EQ expression .)
+    )               reduce using rule 12 (expression -> expression EQ expression .)
+    +               shift and go to state 12
+    -               shift and go to state 13
+    *               shift and go to state 14
+    /               shift and go to state 15
+    >               shift and go to state 16
+    <               shift and go to state 17
+    GE              shift and go to state 18
+    LE              shift and go to state 19
+
+  ! +               [ reduce using rule 12 (expression -> expression EQ expression .) ]
+  ! -               [ reduce using rule 12 (expression -> expression EQ expression .) ]
+  ! *               [ reduce using rule 12 (expression -> expression EQ expression .) ]
+  ! /               [ reduce using rule 12 (expression -> expression EQ expression .) ]
+  ! >               [ reduce using rule 12 (expression -> expression EQ expression .) ]
+  ! <               [ reduce using rule 12 (expression -> expression EQ expression .) ]
+  ! GE              [ reduce using rule 12 (expression -> expression EQ expression .) ]
+  ! LE              [ reduce using rule 12 (expression -> expression EQ expression .) ]
+  ! EQ              [ shift and go to state 20 ]
+  ! NE              [ shift and go to state 21 ]
+  ! LOR             [ shift and go to state 22 ]
+  ! LAND            [ shift and go to state 23 ]
+  ! OR              [ shift and go to state 24 ]
+  ! AND             [ shift and go to state 25 ]
+
+
+state 39
+
+    (13) expression -> expression NE expression .
+    (3) expression -> expression . + expression
+    (4) expression -> expression . - expression
+    (5) expression -> expression . * expression
+    (6) expression -> expression . / expression
+    (7) expression -> expression . > expression
+    (8) expression -> expression . < expression
+    (10) expression -> expression . GE expression
+    (11) expression -> expression . LE expression
+    (12) expression -> expression . EQ expression
+    (13) expression -> expression . NE expression
+    (19) expression -> expression . LOR expression
+    (20) expression -> expression . LAND expression
+    (21) expression -> expression . OR expression
+    (22) expression -> expression . AND expression
+
+    EQ              reduce using rule 13 (expression -> expression NE expression .)
+    NE              reduce using rule 13 (expression -> expression NE expression .)
+    LOR             reduce using rule 13 (expression -> expression NE expression .)
+    LAND            reduce using rule 13 (expression -> expression NE expression .)
+    OR              reduce using rule 13 (expression -> expression NE expression .)
+    AND             reduce using rule 13 (expression -> expression NE expression .)
+    $end            reduce using rule 13 (expression -> expression NE expression .)
+    )               reduce using rule 13 (expression -> expression NE expression .)
+    +               shift and go to state 12
+    -               shift and go to state 13
+    *               shift and go to state 14
+    /               shift and go to state 15
+    >               shift and go to state 16
+    <               shift and go to state 17
+    GE              shift and go to state 18
+    LE              shift and go to state 19
+
+  ! +               [ reduce using rule 13 (expression -> expression NE expression .) ]
+  ! -               [ reduce using rule 13 (expression -> expression NE expression .) ]
+  ! *               [ reduce using rule 13 (expression -> expression NE expression .) ]
+  ! /               [ reduce using rule 13 (expression -> expression NE expression .) ]
+  ! >               [ reduce using rule 13 (expression -> expression NE expression .) ]
+  ! <               [ reduce using rule 13 (expression -> expression NE expression .) ]
+  ! GE              [ reduce using rule 13 (expression -> expression NE expression .) ]
+  ! LE              [ reduce using rule 13 (expression -> expression NE expression .) ]
+  ! EQ              [ shift and go to state 20 ]
+  ! NE              [ shift and go to state 21 ]
+  ! LOR             [ shift and go to state 22 ]
+  ! LAND            [ shift and go to state 23 ]
+  ! OR              [ shift and go to state 24 ]
+  ! AND             [ shift and go to state 25 ]
+
+
+state 40
+
+    (19) expression -> expression LOR expression .
+    (3) expression -> expression . + expression
+    (4) expression -> expression . - expression
+    (5) expression -> expression . * expression
+    (6) expression -> expression . / expression
+    (7) expression -> expression . > expression
+    (8) expression -> expression . < expression
+    (10) expression -> expression . GE expression
+    (11) expression -> expression . LE expression
+    (12) expression -> expression . EQ expression
+    (13) expression -> expression . NE expression
+    (19) expression -> expression . LOR expression
+    (20) expression -> expression . LAND expression
+    (21) expression -> expression . OR expression
+    (22) expression -> expression . AND expression
+
+    LOR             reduce using rule 19 (expression -> expression LOR expression .)
+    OR              reduce using rule 19 (expression -> expression LOR expression .)
+    $end            reduce using rule 19 (expression -> expression LOR expression .)
+    )               reduce using rule 19 (expression -> expression LOR expression .)
+    +               shift and go to state 12
+    -               shift and go to state 13
+    *               shift and go to state 14
+    /               shift and go to state 15
+    >               shift and go to state 16
+    <               shift and go to state 17
+    GE              shift and go to state 18
+    LE              shift and go to state 19
+    EQ              shift and go to state 20
+    NE              shift and go to state 21
+    LAND            shift and go to state 23
+    AND             shift and go to state 25
+
+  ! +               [ reduce using rule 19 (expression -> expression LOR expression .) ]
+  ! -               [ reduce using rule 19 (expression -> expression LOR expression .) ]
+  ! *               [ reduce using rule 19 (expression -> expression LOR expression .) ]
+  ! /               [ reduce using rule 19 (expression -> expression LOR expression .) ]
+  ! >               [ reduce using rule 19 (expression -> expression LOR expression .) ]
+  ! <               [ reduce using rule 19 (expression -> expression LOR expression .) ]
+  ! GE              [ reduce using rule 19 (expression -> expression LOR expression .) ]
+  ! LE              [ reduce using rule 19 (expression -> expression LOR expression .) ]
+  ! EQ              [ reduce using rule 19 (expression -> expression LOR expression .) ]
+  ! NE              [ reduce using rule 19 (expression -> expression LOR expression .) ]
+  ! LAND            [ reduce using rule 19 (expression -> expression LOR expression .) ]
+  ! AND             [ reduce using rule 19 (expression -> expression LOR expression .) ]
+  ! LOR             [ shift and go to state 22 ]
+  ! OR              [ shift and go to state 24 ]
+
+
+state 41
+
+    (20) expression -> expression LAND expression .
+    (3) expression -> expression . + expression
+    (4) expression -> expression . - expression
+    (5) expression -> expression . * expression
+    (6) expression -> expression . / expression
+    (7) expression -> expression . > expression
+    (8) expression -> expression . < expression
+    (10) expression -> expression . GE expression
+    (11) expression -> expression . LE expression
+    (12) expression -> expression . EQ expression
+    (13) expression -> expression . NE expression
+    (19) expression -> expression . LOR expression
+    (20) expression -> expression . LAND expression
+    (21) expression -> expression . OR expression
+    (22) expression -> expression . AND expression
+
+    LOR             reduce using rule 20 (expression -> expression LAND expression .)
+    LAND            reduce using rule 20 (expression -> expression LAND expression .)
+    OR              reduce using rule 20 (expression -> expression LAND expression .)
+    AND             reduce using rule 20 (expression -> expression LAND expression .)
+    $end            reduce using rule 20 (expression -> expression LAND expression .)
+    )               reduce using rule 20 (expression -> expression LAND expression .)
+    +               shift and go to state 12
+    -               shift and go to state 13
+    *               shift and go to state 14
+    /               shift and go to state 15
+    >               shift and go to state 16
+    <               shift and go to state 17
+    GE              shift and go to state 18
+    LE              shift and go to state 19
+    EQ              shift and go to state 20
+    NE              shift and go to state 21
+
+  ! +               [ reduce using rule 20 (expression -> expression LAND expression .) ]
+  ! -               [ reduce using rule 20 (expression -> expression LAND expression .) ]
+  ! *               [ reduce using rule 20 (expression -> expression LAND expression .) ]
+  ! /               [ reduce using rule 20 (expression -> expression LAND expression .) ]
+  ! >               [ reduce using rule 20 (expression -> expression LAND expression .) ]
+  ! <               [ reduce using rule 20 (expression -> expression LAND expression .) ]
+  ! GE              [ reduce using rule 20 (expression -> expression LAND expression .) ]
+  ! LE              [ reduce using rule 20 (expression -> expression LAND expression .) ]
+  ! EQ              [ reduce using rule 20 (expression -> expression LAND expression .) ]
+  ! NE              [ reduce using rule 20 (expression -> expression LAND expression .) ]
+  ! LOR             [ shift and go to state 22 ]
+  ! LAND            [ shift and go to state 23 ]
+  ! OR              [ shift and go to state 24 ]
+  ! AND             [ shift and go to state 25 ]
+
+
+state 42
+
+    (21) expression -> expression OR expression .
+    (3) expression -> expression . + expression
+    (4) expression -> expression . - expression
+    (5) expression -> expression . * expression
+    (6) expression -> expression . / expression
+    (7) expression -> expression . > expression
+    (8) expression -> expression . < expression
+    (10) expression -> expression . GE expression
+    (11) expression -> expression . LE expression
+    (12) expression -> expression . EQ expression
+    (13) expression -> expression . NE expression
+    (19) expression -> expression . LOR expression
+    (20) expression -> expression . LAND expression
+    (21) expression -> expression . OR expression
+    (22) expression -> expression . AND expression
+
+    LOR             reduce using rule 21 (expression -> expression OR expression .)
+    OR              reduce using rule 21 (expression -> expression OR expression .)
+    $end            reduce using rule 21 (expression -> expression OR expression .)
+    )               reduce using rule 21 (expression -> expression OR expression .)
+    +               shift and go to state 12
+    -               shift and go to state 13
+    *               shift and go to state 14
+    /               shift and go to state 15
+    >               shift and go to state 16
+    <               shift and go to state 17
+    GE              shift and go to state 18
+    LE              shift and go to state 19
+    EQ              shift and go to state 20
+    NE              shift and go to state 21
+    LAND            shift and go to state 23
+    AND             shift and go to state 25
+
+  ! +               [ reduce using rule 21 (expression -> expression OR expression .) ]
+  ! -               [ reduce using rule 21 (expression -> expression OR expression .) ]
+  ! *               [ reduce using rule 21 (expression -> expression OR expression .) ]
+  ! /               [ reduce using rule 21 (expression -> expression OR expression .) ]
+  ! >               [ reduce using rule 21 (expression -> expression OR expression .) ]
+  ! <               [ reduce using rule 21 (expression -> expression OR expression .) ]
+  ! GE              [ reduce using rule 21 (expression -> expression OR expression .) ]
+  ! LE              [ reduce using rule 21 (expression -> expression OR expression .) ]
+  ! EQ              [ reduce using rule 21 (expression -> expression OR expression .) ]
+  ! NE              [ reduce using rule 21 (expression -> expression OR expression .) ]
+  ! LAND            [ reduce using rule 21 (expression -> expression OR expression .) ]
+  ! AND             [ reduce using rule 21 (expression -> expression OR expression .) ]
+  ! LOR             [ shift and go to state 22 ]
+  ! OR              [ shift and go to state 24 ]
+
+
+state 43
+
+    (22) expression -> expression AND expression .
+    (3) expression -> expression . + expression
+    (4) expression -> expression . - expression
+    (5) expression -> expression . * expression
+    (6) expression -> expression . / expression
+    (7) expression -> expression . > expression
+    (8) expression -> expression . < expression
+    (10) expression -> expression . GE expression
+    (11) expression -> expression . LE expression
+    (12) expression -> expression . EQ expression
+    (13) expression -> expression . NE expression
+    (19) expression -> expression . LOR expression
+    (20) expression -> expression . LAND expression
+    (21) expression -> expression . OR expression
+    (22) expression -> expression . AND expression
+
+    LOR             reduce using rule 22 (expression -> expression AND expression .)
+    LAND            reduce using rule 22 (expression -> expression AND expression .)
+    OR              reduce using rule 22 (expression -> expression AND expression .)
+    AND             reduce using rule 22 (expression -> expression AND expression .)
+    $end            reduce using rule 22 (expression -> expression AND expression .)
+    )               reduce using rule 22 (expression -> expression AND expression .)
+    +               shift and go to state 12
+    -               shift and go to state 13
+    *               shift and go to state 14
+    /               shift and go to state 15
+    >               shift and go to state 16
+    <               shift and go to state 17
+    GE              shift and go to state 18
+    LE              shift and go to state 19
+    EQ              shift and go to state 20
+    NE              shift and go to state 21
+
+  ! +               [ reduce using rule 22 (expression -> expression AND expression .) ]
+  ! -               [ reduce using rule 22 (expression -> expression AND expression .) ]
+  ! *               [ reduce using rule 22 (expression -> expression AND expression .) ]
+  ! /               [ reduce using rule 22 (expression -> expression AND expression .) ]
+  ! >               [ reduce using rule 22 (expression -> expression AND expression .) ]
+  ! <               [ reduce using rule 22 (expression -> expression AND expression .) ]
+  ! GE              [ reduce using rule 22 (expression -> expression AND expression .) ]
+  ! LE              [ reduce using rule 22 (expression -> expression AND expression .) ]
+  ! EQ              [ reduce using rule 22 (expression -> expression AND expression .) ]
+  ! NE              [ reduce using rule 22 (expression -> expression AND expression .) ]
+  ! LOR             [ shift and go to state 22 ]
+  ! LAND            [ shift and go to state 23 ]
+  ! OR              [ shift and go to state 24 ]
+  ! AND             [ shift and go to state 25 ]
+
+
+state 44
+
+    (14) expression -> ( expression ) .
+
+    +               reduce using rule 14 (expression -> ( expression ) .)
+    -               reduce using rule 14 (expression -> ( expression ) .)
+    *               reduce using rule 14 (expression -> ( expression ) .)
+    /               reduce using rule 14 (expression -> ( expression ) .)
+    >               reduce using rule 14 (expression -> ( expression ) .)
+    <               reduce using rule 14 (expression -> ( expression ) .)
+    GE              reduce using rule 14 (expression -> ( expression ) .)
+    LE              reduce using rule 14 (expression -> ( expression ) .)
+    EQ              reduce using rule 14 (expression -> ( expression ) .)
+    NE              reduce using rule 14 (expression -> ( expression ) .)
+    LOR             reduce using rule 14 (expression -> ( expression ) .)
+    LAND            reduce using rule 14 (expression -> ( expression ) .)
+    OR              reduce using rule 14 (expression -> ( expression ) .)
+    AND             reduce using rule 14 (expression -> ( expression ) .)
+    $end            reduce using rule 14 (expression -> ( expression ) .)
+    )               reduce using rule 14 (expression -> ( expression ) .)
+

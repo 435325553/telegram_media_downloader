@@ -1,0 +1,14 @@
+services:
+  telegram_media_downloader:
+    image: tangyoha/telegram_media_downloader:latest
+    container_name: telegram_media_downloader
+    restart: "unless-stopped"
+    ports:
+      - "8066:5000"
+    volumes:
+      - ./config.yaml:/app/config.yaml
+      - ./downloads/:/app/downloads/
+      - ./module_src/:/app/module/
+      - ./media_downloader.py:/app/media_downloader.py
+    environment:
+      - TZ=Asia/Shanghai

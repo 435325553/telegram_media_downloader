@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Telegram Media Downloader</title>
+  <link href="static/layui/css/layui.css" rel="stylesheet">
+  <link href="static/css/index.css" rel="stylesheet">
+  <style>
+    body {
+      padding: 6px 16px;
+    }
+    .task-action-btn {
+      cursor: pointer;
+      margin: 0 3px;
+      color: #1E9FFF;
+      white-space: nowrap;
+    }
+    .task-action-btn.danger { color: #FF5722; }
+    .task-action-btn.green { color: #5FB878; }
+    .config-panel { padding: 20px; max-width: 720px; }
+    .config-row { margin-bottom: 18px; }
+    .config-row label { display: inline-block; width: 150px; font-weight: 700; }
+  </style>
+</head>
+
+<body>
+  <div class="layui-tab" lay-filter="telegram_media_downloader">
+    <div class="header-title layui-tab-brief">
+      <ul class="layui-tab-title">
+        <li class="layui-this">下载中</li>
+        <li>已下载</li>
+        <li>配置</li>
+      </ul>
+      <div class="stop-btn" id="download_state" data-value="{{ download_state }}" onclick="download_state_change(this)"> {{ download_state }} </div>
+    </div>
+    <div class="layui-tab-content" style="padding: 0;">
+      <div class="layui-tab-item layui-show">
+        <table class="layui-hide" id="download_list" lay-filter="download_list"></table>
+      </div>
+      <div class="layui-tab-item">
+        <table class="layui-hide" id="already_download_list" lay-filter="already_download_list"></table>
+      </div>
+      <div class="layui-tab-item">
+        <div class="config-panel">
+          <div style="font-size:14px;font-weight:700;margin-bottom:10px;color:#009688;">⚙ 配置中心 <span style="font-size:12px;color:#888;font-weight:400;">(所有设置均可在此修改,保存并重启后生效)</span></div>
+
+          <div class="config-row">
+            <label>监听频道列表</label>
+            <div id="chats_editor" style="display:inline-block;vertical-align:top;">
+              <table class="layui-table" style="width:auto;margin:0;">
+                <thead><tr><th style="width:170px;">chat_id / 频道链接</th><th style="width:90px;">起始消息ID</th><th style="width:90px;">大小限制(MB)</th><th style="width:130px;">过滤器</th><th style="width:60px;">操作</th></tr></thead>
+                <tbody id="chats_tbody"></tbody>
+              </table>
+              <button class="layui-btn layui-btn-xs" onclick="add_chat_row()" style="margin-top:6px;">+ 添加频道</button>
+            </div>
+            <div style="font-size:12px; color:#888; margin-top:4px;">可添加多个频道实现多频道同时监听下载; 起始消息ID=0 表示从头开始; 大小限制 0=不限; 过滤器如 video、audio 可留空</div>
+          </div>
+
+          <div class="config-row">
+            <label>下载的媒体类型</label>
+            <div id="media_types_box" style="display:inline-block;vertical-align:top;line-height:2;">
+              <label style="margin-right:14px;"><input type="checkbox" class="media_type_cb" value="photo"> 图片</label>
+              <label style="margin-right:14px;"><input type="checkbox" class="media_type_cb" value="video"> 视频</label>
+              <label style="margin-right:14px;"><input type="checkbox" class="media_type_cb" value="audio"> 音频(MP3等)</label>
+              <label style="margin-right:14px;"><input type="checkbox" class="media_type_cb" value="voice"> 语音</label>
+              <label style="margin-right:14px;"><input type="checkbox" class="media_type_cb" value="document"> 文档</label>
+              <label style="margin-right:14px;"><input type="checkbox" class="media_type_cb" value="video_note"> 视频笔记</label>
+            </div>
+          </div>
+
+          <div class="config-row">
+            <label>语言</label>
+            <select id="language_select" style="width:120px;">
+              <option value="ZH">中文</option>
+              <option value="EN">English</option>
+              <option value="RU">Русский</option>
+              <option value="UA">Українська</option>
+            </select>
+            <label style="margin-left:24px;">并发下载数</label>
+            <input type="number" id="max_download_task_input" style="width:70px;" min="1">
+            <label style="margin-left:24px;">Web端口</label>
+            <input type="number" id="web_port_input" style="width:80px;" min="1">
+          </div>
+
+          <div class="config-row">
+            <label>保存路径</label>
+            <input type="text" id="save_path_input" style="width:360px;" placeholder="/app/downloads">
+            <div style="font-size:12px; color:#888; margin-top:4px;">容器内路径,默认 /app/downloads (已挂载到宿主机 downloads 目录)</div>
+          </div>
+
+          <div class="config-row">
+            <label>代理</label>
+            <select id="proxy_enable" style="width:80px;"><option value="0">关闭</option><option value="1">启用</option></select>
+            <input type="text" id="proxy_scheme" style="width:70px;" value="http" placeholder="http">
+            <input type="text" id="proxy_hostname" style="width:180px;" placeholder="hostname,如 192.168.2.200">
+            <input type="number" id="proxy_port" style="width:90px;" placeholder="port,如 7890">
+          </div>
+
+          <div class="config-row">
+            <label>机器人 Token</label>
+            <input type="text" id="bot_token_input" style="width:320px;" placeholder="BotFather 获取的 token">
+            <div style="font-size:12px; color:#888; margin-top:4px;">修改后需重启容器生效</div>
+          </div>
+
+          <div class="config-row">
+            <label style="vertical-align:top;">操作</label>
+            <div style="display:inline-block;vertical-align:top;">
+              <button class="layui-btn layui-btn-normal" onclick="save_all_config(false)">保存配置</button>
+              <button class="layui-btn layui-btn-danger" onclick="save_all_config(true)">保存并重启容器</button>
+              <span id="save_config_msg" style="margin-left:12px;font-size:13px;color:#888;"></span>
+              <div style="font-size:12px; color:#888; margin-top:6px;">"保存并重启"会写入配置并让容器自动重启,约10-30秒后新配置生效,期间页面会短暂无法访问</div>
+            </div>
+          </div>
+
+          <div class="config-row">
+            <div style="font-size:13px; color:#333;">
+              <b>帮助</b><br>
+              <b>① 机器人命令</b><br>
+              · <b>/download</b> 下载消息<br>
+              示例: <code>/download https://t.me/频道链接 起始消息ID 结束消息ID [过滤器]</code><br>
+              · <b>/forward</b> 转发消息<br>
+              示例: <code>/forward https://t.me/c/源频道 https://t.me/c/目标频道 起始ID 结束ID [过滤器]</code><br>
+              · <b>/set_max_size</b> 设置每频道最大下载大小(0=不限)<br>
+              示例: <code>/set_max_size https://t.me/频道链接 500</code><br>
+              · <b>/set_language</b> 切换语言<br>
+              示例: <code>/set_language zh</code> (切换为中文)<br>
+              · <b>/help</b> 查看全部命令说明<br>
+              <b>② 监听频道与起始消息ID 说明</b><br>
+              · <b>chat_id/频道链接</b>: 填频道标识,支持两种格式<br>
+              &nbsp;&nbsp;1) 数字ID: 以 <code>-100</code> 开头的长数字,如 <code>-1002604815578</code><br>
+              &nbsp;&nbsp;2) 链接: <code>https://t.me/频道用户名</code> 或 <code>https://t.me/c/数字频道ID</code><br>
+              · <b>起始消息ID</b>: 填 t.me 链接里的消息编号,即从哪条消息开始下载<br>
+              &nbsp;&nbsp;例如 <code>https://t.me/madougirl/36653</code> 中的 <code>36653</code> 就是消息ID,直接填 <code>36653</code><br>
+              &nbsp;&nbsp;填 <code>0</code> 表示从头开始下载整个频道历史<br>
+              &nbsp;&nbsp;程序运行完会自动更新这个值为已处理到的最新消息ID(断点续传),下次不会重复下载<br>
+              · <b>大小限制(MB)</b>: 该频道单个文件超过此大小则跳过不下载,填 <code>0</code> 表示不限<br>
+              · <b>过滤器</b>: 只下载指定类型,如 <code>video</code>、<code>audio</code>、<code>document</code>,可留空下载全部<br>
+              · <b>多频道</b>: 点"+ 添加频道"可加多个频道,程序会同时监听下载所有频道<br>
+              示例: 下载 <code>https://t.me/madougirl</code> 从 36653 号消息往后的所有视频,限制 500MB 内<br>
+              &nbsp;&nbsp;→ 频道填 <code>https://t.me/madougirl</code>, 起始消息ID填 <code>36653</code>, 大小限制填 <code>500</code>, 过滤器填 <code>video</code><br>
+              <b>③ Web 操作</b><br>
+              · 暂停/继续/删除: 在"下载中"列表操作列点击对应按钮<br>
+              · 完整配置(频道/媒体类型/语言/代理等): 在上方修改后点"保存并重启容器"<br>
+              · 注意: 修改配置后需点"保存并重启容器"(或"保存配置"+手动重启)才会生效
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="layui-footer">
+    <div class="layui-row layui-col-space1">
+      <div class="layui-col-md2">
+        <p>Telegram Media Downloader V <b id="app_version" style="color: #009688;">undefined</b>
+      </div>
+      <div class="layui-col-md7">
+      </div>
+      <div class="layui-col-md3">
+        <div style="padding: 5px; float: right;">
+          <i class="layui-icon layui-icon-download-circle"
+            style="font-size: 16px; color: #5FB878; font-weight: 700; margin-left: 15px;">
+            <i id="download_speed_title" style="color: black;"> 0.00 B/s </i>
+          </i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="static/layui/layui.js"></script>
+  <script>
+
+    layui.use(['table', 'element', 'layer'], function () {
+      var table = layui.table;
+      var element = layui.element;
+      var layer = layui.layer;
+      var $ = layui.$;
+      var already_download_list_data = new Array()
+      var download_list_table_data = new Array()
+
+      $.ajax({
+        url: "get_app_version"
+        , type: "get"
+        , async: false
+        , dataType: "text"
+        , success: function (result) {
+          $("#app_version").html(result)
+        }
+      });
+
+      download_state_change = function(e) {
+        $.ajax({
+        url: "set_download_state?state=" + e.dataset.value
+        , type: "post"
+        , async: false
+        , dataType: "text"
+        , success: function (result) {
+          $("#download_state").html(result)
+          e.dataset.value=result
+        }
+      });
+    }
+
+      tableIns = table.render({
+        elem: '#download_list'
+        , data: download_list_table_data
+        , title: 'download_list'
+        , height: 'full-160'
+        , limit: 10000
+        , cols: [[
+          { field: 'chat', title: '频道', width: 100 },
+          { field: 'id', title: '消息ID', width: 100 }
+          , { field: 'filename', title: '文件名', align: 'center' }
+          , { field: 'total_size', title: '文件大小', align: 'center' }
+          , {
+            field: 'download_progress', title: '下载进度', align: 'center', templet: function (d) {
+              var ys = '';
+              if (30 < d.download_progress && d.download_progress < 100) {
+                ys = 'layui-bg-blue'
+              } else if (0 < d.download_progress && d.download_progress <= 30) {
+                ys = 'layui-bg-red'
+              }
+              else if (100 == d.download_progress) {
+                ys = 'layui-bg-green'
+              }
+              return '<div class="layui-progress layui-progress-big" lay-showpercent="true"  lay-filter="down-' + d.id + '"><div class="layui-progress-bar ' + ys + '" lay-percent="' + d.download_progress + '%"></div></div>'
+            }
+          }
+          , { field: 'download_speed', title: '下载速度', align: 'center' }
+          , {
+            title: '操作', align: 'center', templet: function (d) {
+              var paused = (d.task_state == 'paused');
+              return '<span class="task-action-btn ' + (paused ? 'green' : '') + '" onclick="task_pause_resume(\'' + d.chat + '\',\'' + d.id + '\',\'' + (paused ? 'resume' : 'pause') + '\', this)">' + (paused ? '继续' : '暂停') + '</span>'
+                + '<span class="task-action-btn danger" onclick="task_delete(\'' + d.chat + '\',\'' + d.id + '\', this)">删除</span>';
+            }
+          }
+        ]]
+        , done: function (res, currentCount) {
+          element.render()
+        }
+      });
+
+      table.render({
+        elem: '#already_download_list'
+        , data: already_download_list_data
+        , title: 'already_download_list'
+        , height: 'full-160'
+        , limit: 10000
+        , cols: [[
+
+          { field: 'id', title: '消息ID', width: 100 }
+          , { field: 'filename', title: '文件名', align: 'center' }
+          , { field: 'total_size', title: '文件大小', align: 'center' }
+          , { field: 'save_path', title: '保存路径', align: 'center' }
+        ]], done: function (res, currentCount) {
+          element.render()
+        }
+      });
+
+      function task_pause_resume(chat, id, action, el) {
+        $.ajax({
+          url: action + "_task?chat=" + chat + "&id=" + id
+          , type: "post"
+          , async: false
+          , dataType: "json"
+          , success: function (result) {
+            if (result.code == "1") {
+              // 立即切换按钮(暂停<->继续), 不等1秒轮询
+              var newState = (action == 'pause') ? 'paused' : 'running';
+              var row = $('div[lay-id="download_list"] tr[data-index="' + chat + '-' + id + '"]');
+              var action_obj = row.find('td[data-key="1-0-6"] .layui-table-cell');
+              if (action_obj.length) {
+                action_obj.html(action_btns_html(chat, id, newState));
+              }
+              // 暂停时速度列立即显示已暂停
+              if (action == 'pause') {
+                var speed_obj = $('div[lay-filter="down_speed-' + chat + '-' + id + '"]');
+                if (speed_obj.length) { speed_obj.html('已暂停'); }
+              }
+              layer.msg(action == 'pause' ? '已暂停' : '已继续')
+            } else {
+              layer.msg('操作失败: ' + result.msg)
+            }
+          }
+        });
+      }
+
+      function task_delete(chat, id, el) {
+        layer.confirm('确认删除该下载任务?', function (index) {
+          $.ajax({
+            url: "delete_task?chat=" + chat + "&id=" + id
+            , type: "post"
+            , async: false
+            , dataType: "json"
+            , success: function (result) {
+              if (result.code == "1") {
+                // 立即移除该行(不等轮询)
+                var key = chat + '-' + id;
+                $('div[lay-id="download_list"] tr[data-index="' + key + '"]').remove();
+                for (var j = 0; j < download_list_table_data.length; j++) {
+                  if (download_list_table_data[j].chat == chat && download_list_table_data[j].id == id) {
+                    download_list_table_data.splice(j, 1);
+                    break;
+                  }
+                }
+                layer.msg('已删除')
+              } else {
+                layer.msg('操作失败: ' + result.msg)
+              }
+            }
+          });
+          layer.close(index);
+        });
+      }
+
+      function add_chat_row(chat_id, last_id, max_mb, filter) {
+        var tr = $('<tr>');
+        tr.append('<td><input type="text" class="chat_id_cell" style="width:160px;" value="' + (chat_id||'') + '" placeholder="-100xxxxxxxxx"></td>');
+        tr.append('<td><input type="number" class="chat_last_cell" style="width:80px;" value="' + (last_id||0) + '" min="0"></td>');
+        tr.append('<td><input type="number" class="chat_maxmb_cell" style="width:80px;" value="' + (max_mb||0) + '" min="0"></td>');
+        tr.append('<td><input type="text" class="chat_filter_cell" style="width:120px;" value="' + (filter||'') + '" placeholder="如 video"></td>');
+        tr.append('<td><button class="layui-btn layui-btn-xs layui-btn-danger" onclick="$(this).closest(\'tr\').remove()">删除</button></td>');
+        $('#chats_tbody').append(tr);
+      }
+
+      function load_chat_rows(cfg) {
+        $('#chats_tbody').empty();
+        var chats = (cfg && cfg.chats) || [];
+        if (chats.length === 0) { add_chat_row('', 0, 0, ''); }
+        for (var i = 0; i < chats.length; i++) {
+          var c = chats[i];
+          add_chat_row(c.chat_id, c.last_read_message_id || 0, Math.round((c.max_file_size||0)/1024/1024), c.download_filter || '');
+        }
+      }
+
+      function collect_config() {
+        var chats = [];
+        $('#chats_tbody tr').each(function () {
+          var cid = $(this).find('.chat_id_cell').val().trim();
+          if (!cid) return;
+          var last = parseInt($(this).find('.chat_last_cell').val()) || 0;
+          var mb = parseFloat($(this).find('.chat_maxmb_cell').val()) || 0;
+          var flt = $(this).find('.chat_filter_cell').val().trim();
+          chats.push({ chat_id: cid, last_read_message_id: last, max_file_size: Math.round(mb*1024*1024), download_filter: flt });
+        });
+        var media_types = [];
+        $('.media_type_cb:checked').each(function () { media_types.push($(this).val()); });
+        var cfg = {
+          chats: chats,
+          media_types: media_types,
+          language: $('#language_select').val(),
+          max_download_task: parseInt($('#max_download_task_input').val()) || 1,
+          web_port: parseInt($('#web_port_input').val()) || 5000,
+          save_path: $('#save_path_input').val().trim(),
+          bot_token: $('#bot_token_input').val().trim(),
+          proxy: null
+        };
+        if ($('#proxy_enable').val() == '1') {
+          cfg.proxy = {
+            scheme: $('#proxy_scheme').val().trim() || 'http',
+            hostname: $('#proxy_hostname').val().trim(),
+            port: parseInt($('#proxy_port').val()) || 0
+          };
+        }
+        return cfg;
+      }
+
+      function save_all_config(restart) {
+        var cfg = collect_config();
+        var msg_box = $('#save_config_msg');
+        msg_box.html('正在保存...');
+        if (restart) {
+          // 容器即将退出,请求发出即可,不等待响应
+          $.ajax({
+            url: "restart_app"
+            , type: "post"
+            , contentType: "application/json"
+            , async: true
+            , timeout: 3000
+            , data: JSON.stringify({ config: cfg })
+            , dataType: "json"
+            , success: function (result) {
+              msg_box.html('<span style="color:#FF5722;">已保存,容器正在重启,约10-30秒后生效...</span>');
+              layer.msg('已保存,容器正在重启')
+            }
+            , error: function () {
+              // 容器退出导致连接中断也属正常
+              msg_box.html('<span style="color:#FF5722;">已保存,容器正在重启,约10-30秒后生效...</span>');
+              layer.msg('已保存,容器正在重启')
+            }
+          });
+          return;
+        }
+        $.ajax({
+          url: "save_config"
+          , type: "post"
+          , contentType: "application/json"
+          , async: false
+          , data: JSON.stringify({ config: cfg })
+          , dataType: "json"
+          , success: function (result) {
+            if (result.code == "1") {
+              msg_box.html('<span style="color:#5FB878;">已保存(未重启,需重启容器后生效)</span>');
+              layer.msg('已保存(需重启容器后生效)')
+            } else {
+              msg_box.html('<span style="color:#f00;">保存失败: ' + result.msg + '</span>');
+              layer.msg('保存失败: ' + result.msg)
+            }
+          }
+          , error: function () {
+            msg_box.html('<span style="color:#f00;">请求失败</span>');
+            layer.msg('请求失败')
+          }
+        });
+      }
+
+      function load_full_config() {
+        $.ajax({
+          url: "get_config"
+          , type: "get"
+          , async: false
+          , dataType: "json"
+          , success: function (result) {
+            if (result.code != "1") { return; }
+            var cfg = result.config;
+            // 媒体类型
+            var media = cfg.media_status || {};
+            $('.media_type_cb').each(function () {
+              var v = $(this).val();
+              $(this).prop('checked', media[v] === true);
+            });
+            // 频道列表
+            load_chat_rows(cfg);
+            // 语言
+            $('#language_select').val(cfg.language || 'EN');
+            // 并发/端口/路径
+            $('#max_download_task_input').val(cfg.max_download_task || 1);
+            $('#web_port_input').val(cfg.web_port || 5000);
+            $('#save_path_input').val(cfg.save_path || '/app/downloads');
+            // 代理
+            if (cfg.proxy) {
+              $('#proxy_enable').val('1');
+              $('#proxy_scheme').val((cfg.proxy.scheme||'http'));
+              $('#proxy_hostname').val(cfg.proxy.hostname||'');
+              $('#proxy_port').val(cfg.proxy.port||'');
+            } else {
+              $('#proxy_enable').val('0');
+              $('#proxy_hostname').val('');
+              $('#proxy_port').val('');
+            }
+            // Token
+            $("#bot_token_input").val(cfg.bot_token || '');
+          }
+        });
+      }
+
+      function save_bot_token() {
+        var token = $("#bot_token_input").val().trim();
+        if (!token) { layer.msg('请输入 token'); return; }
+        $.ajax({
+          url: "set_bot_token"
+          , type: "post"
+          , contentType: "application/json"
+          , async: false
+          , data: JSON.stringify({ bot_token: token })
+          , dataType: "json"
+          , success: function (result) {
+            if (result.code == "1") { layer.msg('已保存,重启容器后生效') }
+            else { layer.msg('保存失败: ' + result.msg) }
+          }
+        });
+      }
+
+      function load_bot_config() {
+        $.ajax({
+          url: "get_bot_config"
+          , type: "get"
+          , async: false
+          , dataType: "json"
+          , success: function (result) {
+            if (result.code == "1") {
+              $("#bot_token_input").val(result.bot_token || '')
+            }
+          }
+        });
+      }
+
+      // 根据任务状态生成操作列按钮
+      function action_btns_html(chat, id, state) {
+        var paused = (state == 'paused');
+        return '<span class="task-action-btn ' + (paused ? 'green' : '') + '" onclick="task_pause_resume(\'' + chat + '\',\'' + id + '\',\'' + (paused ? 'resume' : 'pause') + '\', this)">' + (paused ? '继续' : '暂停') + '</span>'
+          + '<span class="task-action-btn danger" onclick="task_delete(\'' + chat + '\',\'' + id + '\', this)">删除</span>';
+      }
+
+      function update_download_list() {
+        $.ajax({
+          url: "get_download_list?already_down=false"
+          , type: "get"
+          , async: false
+          , dataType: "json"
+          , success: function (result) {
+            // 本轮 result 中存在的 chat-id 集合
+            var live_keys = {};
+            for (var i = 0, len = result.length; i < len; i++) {
+              live_keys[result[i].chat + '-' + result[i].id] = true;
+            }
+
+            // 更新已有行: 进度/速度/操作列; 后端已删除的行则移除
+            for (var j = 0, len2 = download_list_table_data.length; j < len2; j++) {
+              var key = download_list_table_data[j].chat + '-' + download_list_table_data[j].id;
+              var row_el = $('div[lay-id="download_list"] tr[data-index="' + key + '"]');
+              if (!live_keys[key]) {
+                // 后端已移除(删除/完成), 从页面和数据中移除
+                row_el.remove();
+                download_list_table_data.splice(j, 1);
+                j--; len2--;
+                continue;
+              }
+              var item = null;
+              for (var i = 0, len = result.length; i < len; i++) {
+                if (result[i].chat == download_list_table_data[j].chat && result[i].id == download_list_table_data[j].id) {
+                  item = result[i];
+                  break;
+                }
+              }
+              if (!item) { continue; }
+
+              download_list_table_data[j].download_progress = item.download_progress
+              download_list_table_data[j].task_state = item.task_state
+              var progress = download_list_table_data[j].download_progress
+              element.progress('down-' + item.chat + '-' + item.id, progress + '%');
+
+              // 速度列
+              var download_speed_obj = $('div[lay-filter="down_speed-' + item.chat + '-' + item.id + '"]')
+              if (download_speed_obj.length) {
+                download_speed_obj.html(item.download_speed)
+              }
+
+              // 操作列: 按 task_state 显示 暂停/继续
+              var action_obj = row_el.find('td[data-key="1-0-6"] .layui-table-cell');
+              if (action_obj.length) {
+                action_obj.html(action_btns_html(item.chat, item.id, item.task_state));
+              }
+
+              if (progress == 100) {
+                var device_obj = $('div[lay-filter="down-' + item.chat + '-' + item.id + '"] div')
+                device_obj.removeClass("layui-bg-blue")
+                device_obj.addClass("layui-bg-green")
+                obj = $('div[lay-id="download_list"]  tr[data-index="' + item.chat + '-' + item.id + '"]')
+                obj.remove()
+              }
+            }
+
+            // new task
+            for (var i = 0, len = result.length; i < len; i++) {
+              find_iter = false
+              for (var j = 0, len2 = download_list_table_data.length; j < len2; j++) {
+                if (result[i].chat == download_list_table_data[j].chat && result[i].id == download_list_table_data[j].id) {
+                  find_iter = true
+                  break
+                }
+              }
+
+              if (find_iter || result[i].download_progress == 100) {
+                continue;
+              }
+              // not found
+              obj = $('div[lay-id="download_list"]  .layui-table-body .layui-table tbody')
+              var tr = ' <tr data-index="' + result[i].chat + '-' + result[i].id + '">' +
+                '<td data-field="id" data-key="1-0-0" class=""><div class="layui-table-cell laytable-cell-1-0-0">' + result[i].chat + '</div></td>' +
+                '<td data-field="id" data-key="1-0-1" class=""><div class="layui-table-cell laytable-cell-1-0-1">' + result[i].id + '</div></td>' +
+                '<td data-field="filename" data-key="1-0-2" class=""><div class="layui-table-cell laytable-cell-1-0-2" align="center">' + result[i].filename + '</div></td>' +
+                '<td data-field="total_size" data-key="1-0-3" class=""><div class="layui-table-cell laytable-cell-1-0-3" align="center">' + result[i].total_size + '</div></td>' +
+                '<td data-field="download_progress" data-key="1-0-4" data-content="' + result[i].download_progress + '" class=""><div class="layui-table-cell laytable-cell-1-0-4" align="center"><div class="layui-progress layui-progress-big" lay-showpercent="true" lay-filter="down-' + result[i].chat + '-' + result[i].id + '"><div class="layui-progress-bar layui-bg-blue" lay-percent="' + result[i].download_progress + '%" style="width: ' + result[i].download_progress + '%;"><span class="layui-progress-text">' + result[i].download_progress + '%</span></div></div></div></td>' +
+                '<td data-field="download_speed" data-key="1-0-5" class=""><div class="layui-table-cell laytable-cell-1-0-5" align="center"lay-filter="down_speed-' + result[i].chat + '-' + result[i].id + '">' + result[i].download_speed + '</div></td>' +
+                '<td data-field="action" data-key="1-0-6" class=""><div class="layui-table-cell laytable-cell-1-0-6" align="center">' + action_btns_html(result[i].chat, result[i].id, result[i].task_state) + '</div></td>' +
+                "  </tr>";
+              obj.append(tr)
+              download_list_table_data.push(result[i])
+
+              if (download_list_table_data.length == 1) {
+                $(".layui-none").remove()
+              }
+
+              element.render()
+
+            }
+
+            element.render()
+          }
+        });
+
+      };
+
+
+      function update_download_status() {
+        $.ajax({
+          url: "get_download_status"
+          , type: "get"
+          , async: false
+          , dataType: "json"
+          , success: function (result) {
+            $("#download_speed_title").html(result.download_speed)
+          }
+        });
+
+      };
+
+
+      var update_download_list_int = self.setInterval(update_download_list, 1000);
+      var update_download_status_int = self.setInterval(update_download_status, 1000);
+      var update_already_download_list_int = 0;
+
+
+      function update_already_download_list() {
+        $.ajax({
+          url: "get_download_list?already_down=true"
+          , type: "get"
+          , async: false
+          , dataType: "json"
+          , success: function (result) {
+            // if not exist then add
+            for (var i = 0, len = result.length; i < len; i++) {
+              if (result[i].download_progress != 100) {
+                continue
+              }
+
+              find_iter = false
+
+              for (var j = 0, len2 = already_download_list_data.length; j < len2; j++) {
+                if (result[i].chat == download_list_table_data[i].chat && result[i].id == already_download_list_data[j].id) {
+                  find_iter = true
+                  break
+                }
+              }
+
+              if (find_iter) {
+                continue;
+              }
+              // not found
+              obj = $('div[lay-id="already_download_list"]  .layui-table-body .layui-table tbody')
+              var tr = ' <tr data-index="' + result[i].chat + '-' + result[i].id + '">' +
+                '<td data-field="id" data-key="2-0-0" class=""><div class="layui-table-cell laytable-cell-2-0-0">' + result[i].id + '</div></td>' +
+                '<td data-field="filename" data-key="2-0-1" class=""><div class="layui-table-cell laytable-cell-2-0-1" align="center">' + result[i].filename + '</div></td>' +
+                '<td data-field="total_size" data-key="2-0-2" class=""><div class="layui-table-cell laytable-cell-2-0-2" align="center">' + result[i].total_size + '</div></td>' +
+                '<td data-field="save_path" data-key="2-0-3" class=""><div class="layui-table-cell laytable-cell-2-0-3" align="center">' + result[i].save_path + '</div></td>' +
+                "  </tr>";
+              obj.append(tr)
+
+              already_download_list_data.push(result[i])
+
+              if (already_download_list_data.length == 1) {
+                $(".layui-none").remove()
+              }
+              element.render()
+            }
+
+            element.render()
+          }
+        });
+
+      };
+
+      element.on('tab(telegram_media_downloader)', function (data) {
+        if (data.index != 0) {
+          clearInterval(update_download_list_int);
+        }
+
+        if (data.index == 0) {
+          update_download_list_int = self.setInterval(update_download_list, 1000);
+        }
+
+        if (data.index != 1) {
+          clearInterval(update_already_download_list_int);
+        }
+
+        if (data.index == 1) {
+          update_already_download_list_int = self.setInterval(update_already_download_list, 1000);
+        }
+
+        if (data.index == 2) {
+          load_bot_config();
+          load_full_config();
+        }
+      });
+
+      // 将 onclick 内联事件需要的函数挂到全局,确保按钮可用
+      window.task_pause_resume = task_pause_resume;
+      window.task_delete = task_delete;
+      window.action_btns_html = action_btns_html;
+      window.add_chat_row = add_chat_row;
+      window.save_all_config = save_all_config;
+      window.load_full_config = load_full_config;
+      window.load_bot_config = load_bot_config;
+      window.save_bot_token = save_bot_token;
+      window.collect_config = collect_config;
+      window.download_state_change = download_state_change;
+      window.update_download_list = update_download_list;
+
+    });
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,12 @@
+Flask==2.2.2
+Flask-Login==0.6.2
+Jinja2==3.1.4
+loguru==0.6.0
+Pygments==2.18.0
+Pyrogram @ https://github.com/tangyoha/pyrogram/archive/refs/heads/patch.zip
+PySocks==1.7.1
+PyYAML==5.3.1
+requests==2.32.3
+ruamel.yaml==0.17.21
+TgCrypto==1.2.5
+rich==12.5.1
