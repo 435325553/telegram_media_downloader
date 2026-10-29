@@ -399,6 +399,10 @@ class Application:
         self.web_port: int = 5000
         self.max_download_task: int = 5
         self.language = Language.EN
+        # 全局大小限制(对所有下载生效,含机器人命令下载的文件)
+        self.global_max_size_enabled: bool = True
+        self.global_max_size_mb: int = 500   # 默认 500MB
+        self.global_max_size_bytes: int = 500 * 1024 * 1024
         self.after_upload_telegram_delete: bool = True
         self.web_login_secret: str = ""
         self.debug_web: bool = False
@@ -495,6 +499,19 @@ class Application:
 
         self.max_download_task = _config.get(
             "max_download_task", self.max_download_task
+        )
+        # 全局大小限制: max_size_enabled(开关) + max_size(MB), 缺省默认500MB
+        _g_enabled = _config.get("max_size_enabled", self.global_max_size_enabled)
+        try:
+            _g_mb = int(_config.get("max_size", 500) or 0)
+        except (TypeError, ValueError):
+            _g_mb = 500
+        if _g_mb < 0:
+            _g_mb = 0
+        self.global_max_size_enabled = bool(_g_enabled)
+        self.global_max_size_mb = _g_mb
+        self.global_max_size_bytes = (
+            _g_mb * 1024 * 1024 if self.global_max_size_enabled else 0
         )
 
         self.max_concurrent_transmissions = self.max_download_task * 5
@@ -892,11 +909,16 @@ class Application:
             _yaml.dump(self.config, yaml_file)
 
     def get_chat_max_file_size(self, chat_id: Union[int, str]) -> int:
-        """Get per-chat max file size limit in bytes (0 = unlimited)"""
+        """Get effective max file size limit in bytes for a chat.
+
+        频道单独设置了 max_file_size(>0) 则用频道值;
+        否则回落到全局默认大小限制(global_max_size_bytes)。
+        0 表示不限。
+        """
         config = self.chat_download_config.get(chat_id)
-        if config is None:
-            return 0
-        return getattr(config, "max_file_size", 0)
+        if config is not None and getattr(config, "max_file_size", 0) > 0:
+            return config.max_file_size
+        return self.global_max_size_bytes
 
     def set_chat_max_file_size(self, chat_id: Union[int, str], max_file_size: int):
         """Set per-chat max file size limit in bytes and persist to config"""
@@ -996,6 +1018,23 @@ class Application:
                 self.config["web_port"] = p
             except (TypeError, ValueError):
                 errors.append("web_port must be an integer")
+
+        # ---- 全局大小限制 (max_size_enabled 开关 + max_size MB) ----
+        if "max_size_enabled" in new_cfg or "max_size" in new_cfg:
+            try:
+                g_enabled = bool(new_cfg.get("max_size_enabled", True))
+                g_mb = int(new_cfg.get("max_size", 0) or 0)
+                if g_mb < 0:
+                    g_mb = 0
+                self.global_max_size_enabled = g_enabled
+                self.global_max_size_mb = g_mb
+                self.global_max_size_bytes = (
+                    g_mb * 1024 * 1024 if g_enabled else 0
+                )
+                self.config["max_size_enabled"] = g_enabled
+                self.config["max_size"] = g_mb
+            except (TypeError, ValueError):
+                errors.append("max_size must be a non-negative integer (MB)")
 
         # ---- chats ----
         if "chats" in new_cfg:
@@ -1146,6 +1185,8 @@ class Application:
             "max_download_task": self.max_download_task,
             "web_port": self.web_port,
             "save_path": self.save_path,
+            "max_size_enabled": self.global_max_size_enabled,
+            "max_size": self.global_max_size_mb,
         }
 
     def load_config(self):

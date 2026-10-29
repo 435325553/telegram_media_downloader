@@ -55,7 +55,14 @@
               </table>
               <button class="layui-btn layui-btn-xs" onclick="add_chat_row()" style="margin-top:6px;">+ 添加频道</button>
             </div>
-            <div style="font-size:12px; color:#888; margin-top:4px;">可添加多个频道实现多频道同时监听下载; 起始消息ID=0 表示从头开始; 大小限制 0=不限; 过滤器如 video、audio 可留空</div>
+            <div style="font-size:12px; color:#888; margin-top:4px;">可添加多个频道实现多频道同时监听下载; 起始消息ID=0 表示从头开始; 大小限制 0=跟随全局默认; 过滤器如 video、audio 可留空</div>
+          </div>
+
+          <div class="config-row">
+            <label>全局大小限制</label>
+            <input type="checkbox" id="max_size_enabled_cb" style="vertical-align:middle;"> <span style="margin-right:10px;">启用</span>
+            <input type="number" id="max_size_input" style="width:90px;" min="0" placeholder="500"> <span>MB</span>
+            <div style="font-size:12px; color:#888; margin-top:4px;">对所有下载生效(含机器人命令下载的文件); 默认 500MB, 填 0 表示不限; 频道的"大小限制"填 0 时跟随此全局值</div>
           </div>
 
           <div class="config-row">
@@ -135,7 +142,8 @@
               &nbsp;&nbsp;例如 <code>https://t.me/madougirl/36653</code> 中的 <code>36653</code> 就是消息ID,直接填 <code>36653</code><br>
               &nbsp;&nbsp;填 <code>0</code> 表示从头开始下载整个频道历史<br>
               &nbsp;&nbsp;程序运行完会自动更新这个值为已处理到的最新消息ID(断点续传),下次不会重复下载<br>
-              · <b>大小限制(MB)</b>: 该频道单个文件超过此大小则跳过不下载,填 <code>0</code> 表示不限<br>
+              · <b>大小限制(MB)</b>: 该频道单个文件超过此大小则跳过不下载,填 <code>0</code> 表示跟随全局大小限制<br>
+              · <b>全局大小限制</b>: 对所有下载生效(含机器人命令下载),默认 <code>500</code> MB,填 <code>0</code> 表示不限; 频道填 <code>0</code> 时使用此全局值<br>
               · <b>过滤器</b>: 只下载指定类型,如 <code>video</code>、<code>audio</code>、<code>document</code>,可留空下载全部<br>
               · <b>多频道</b>: 点"+ 添加频道"可加多个频道,程序会同时监听下载所有频道<br>
               示例: 下载 <code>https://t.me/madougirl</code> 从 36653 号消息往后的所有视频,限制 500MB 内<br>
@@ -355,6 +363,8 @@
           web_port: parseInt($('#web_port_input').val()) || 5000,
           save_path: $('#save_path_input').val().trim(),
           bot_token: $('#bot_token_input').val().trim(),
+          max_size_enabled: $('#max_size_enabled_cb').prop('checked'),
+          max_size: parseFloat($('#max_size_input').val()) || 0,
           proxy: null
         };
         if ($('#proxy_enable').val() == '1') {
@@ -452,6 +462,9 @@
             }
             // Token
             $("#bot_token_input").val(cfg.bot_token || '');
+            // 全局大小限制
+            $('#max_size_enabled_cb').prop('checked', cfg.max_size_enabled !== false);
+            $('#max_size_input').val(cfg.max_size || 0);
           }
         });
       }
