@@ -276,8 +276,8 @@
         , limit: 10000
         , cols: [[
 
-          { field: 'chat', title: '频道', width: 100 },
-          { field: 'chat_nick', title: '频道昵称', width: 200, templet: function (d) { return chat_title_map[d.chat] || d.chat; } },
+          { field: 'chat', title: '频道昵称', width: 200, templet: function (d) { return chat_title_map[d.chat] || d.chat; } },
+          { field: 'date', title: '日期', width: 110 },
           { field: 'id', title: '消息ID', width: 100 }
           , { field: 'filename', title: '文件名', align: 'center' }
           , { field: 'total_size', title: '文件大小', align: 'center' }
@@ -688,8 +688,8 @@
               // not found
               obj = $('div[lay-id="already_download_list"]  .layui-table-body .layui-table tbody')
               var tr = ' <tr data-index="' + result[i].chat + '-' + result[i].id + '">' +
-                '<td data-field="chat" data-key="2-0-0" class=""><div class="layui-table-cell laytable-cell-2-0-0">' + result[i].chat + '</div></td>' +
-                '<td data-field="chat_nick" data-key="2-0-1" class=""><div class="layui-table-cell laytable-cell-2-0-1">' + (chat_title_map[result[i].chat] || result[i].chat) + '</div></td>' +
+                '<td data-field="chat" data-key="2-0-0" class=""><div class="layui-table-cell laytable-cell-2-0-0">' + (chat_title_map[result[i].chat] || result[i].chat) + '</div></td>' +
+                '<td data-field="date" data-key="2-0-1" class=""><div class="layui-table-cell laytable-cell-2-0-1">' + result[i].date + '</div></td>' +
                 '<td data-field="id" data-key="2-0-2" class=""><div class="layui-table-cell laytable-cell-2-0-2">' + result[i].id + '</div></td>' +
                 '<td data-field="filename" data-key="2-0-3" class=""><div class="layui-table-cell laytable-cell-2-0-3" align="center">' + result[i].filename + '</div></td>' +
                 '<td data-field="total_size" data-key="2-0-4" class=""><div class="layui-table-cell laytable-cell-2-0-4" align="center">' + result[i].total_size + '</div></td>' +

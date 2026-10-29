@@ -3,6 +3,7 @@
 import logging
 import os
 import threading
+import time
 
 from flask import Flask, jsonify, render_template, request
 from flask_login import LoginManager, UserMixin, login_required, login_user
@@ -284,6 +285,60 @@ def get_app_version():
     return utils.__version__
 
 
+# 磁盘扫描结果缓存(5秒内复用,避免高频轮询反复扫盘)
+_disk_scan_cache: dict = {"ts": 0.0, "items": []}
+
+
+def _scan_downloaded_files(save_path: str) -> list:
+    """扫描 downloads 目录生成已下载列表: 频道/日期/消息ID/文件名/大小/路径"""
+    global _disk_scan_cache
+    now = time.time()
+    if now - _disk_scan_cache.get("ts", 0.0) < 5 and _disk_scan_cache.get("items"):
+        return _disk_scan_cache["items"]
+    items = []
+    try:
+        if os.path.isdir(save_path):
+            for chat_dir in sorted(os.listdir(save_path)):
+                chat_path = os.path.join(save_path, chat_dir)
+                if not os.path.isdir(chat_path):
+                    continue
+                for date_dir in sorted(os.listdir(chat_path)):
+                    dpath = os.path.join(chat_path, date_dir)
+                    if not os.path.isdir(dpath):
+                        continue
+                    for fn in sorted(os.listdir(dpath)):
+                        fpath = os.path.join(dpath, fn)
+                        if not os.path.isfile(fpath):
+                            continue
+                        mid = ""
+                        if " - " in fn:
+                            head = fn.split(" - ")[0].strip()
+                            if head.isdigit():
+                                mid = head
+                        try:
+                            size = os.path.getsize(fpath)
+                        except OSError:
+                            size = 0
+                        items.append(
+                            {
+                                "chat": chat_dir,
+                                "id": mid,
+                                "filename": fn,
+                                "total_size": format_byte(size),
+                                "save_path": fpath.replace("\\", "/"),
+                                "date": date_dir,
+                                "download_progress": "100",
+                                "download_speed": "0.0b/s",
+                                "task_state": "completed",
+                            }
+                        )
+    except Exception as exc:  # pylint: disable = W0718
+        log.warning("scan downloaded files error: %s", exc)
+    _disk_scan_cache["ts"] = now
+    _disk_scan_cache["items"] = items
+    return items
+
+
 @_flask_app.route("/get_download_list")
 @login_required
 def get_download_list():
@@ -292,6 +347,12 @@ def get_download_list():
         return "[]"
 
     already_down = request.args.get("already_down") == "true"
+
+    # 已下载列表: 直接扫描磁盘 downloads 目录(持久、完整、与磁盘一致)
+    if already_down:
+        app_inst = getattr(_flask_app, "app_instance", None)
+        save_path = getattr(app_inst, "save_path", None) or "/app/downloads"
+        return jsonify(_scan_downloaded_files(save_path))
 
     download_result = get_download_result()
     result = "["
