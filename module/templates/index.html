@@ -66,6 +66,12 @@
           </div>
 
           <div class="config-row">
+            <label>下载超时</label>
+            <input type="number" id="download_timeout_input" style="width:80px;" min="0" placeholder="0"> <span>分钟</span>
+            <div style="font-size:12px; color:#888; margin-top:4px;">单个文件下载超过此时间自动停止并重试(最多3次), 3次仍失败自动删除任务与缓存; 0=不限</div>
+          </div>
+
+          <div class="config-row">
             <label>下载的媒体类型</label>
             <div id="media_types_box" style="display:inline-block;vertical-align:top;line-height:2;">
               <label style="margin-right:14px;"><input type="checkbox" class="media_type_cb" value="photo"> 图片</label>
@@ -365,6 +371,7 @@
           bot_token: $('#bot_token_input').val().trim(),
           max_size_enabled: $('#max_size_enabled_cb').prop('checked'),
           max_size: parseFloat($('#max_size_input').val()) || 0,
+          download_timeout: parseInt($('#download_timeout_input').val()) || 0,
           proxy: null
         };
         if ($('#proxy_enable').val() == '1') {
@@ -465,6 +472,8 @@
             // 全局大小限制
             $('#max_size_enabled_cb').prop('checked', cfg.max_size_enabled !== false);
             $('#max_size_input').val(cfg.max_size || 0);
+            // 下载超时(分钟)
+            $('#download_timeout_input').val(cfg.download_timeout || 0);
           }
         });
       }

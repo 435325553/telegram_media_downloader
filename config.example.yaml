@@ -25,6 +25,9 @@ chat:
 max_size_enabled: true
 max_size: 500
 
+# 单文件下载超时(分钟): 超过自动停止并重试(最多3次), 3次仍失败自动删除任务与缓存; 0=不限
+download_timeout: 0
+
 # 下载的媒体类型
 media_types:
 - video

@@ -399,6 +399,8 @@ class Application:
         self.web_port: int = 5000
         self.max_download_task: int = 5
         self.language = Language.EN
+        # 单文件下载超时(分钟), 0=不限
+        self.download_timeout: int = 0
         # 全局大小限制(对所有下载生效,含机器人命令下载的文件)
         self.global_max_size_enabled: bool = True
         self.global_max_size_mb: int = 500   # 默认 500MB
@@ -513,6 +515,13 @@ class Application:
         self.global_max_size_bytes = (
             _g_mb * 1024 * 1024 if self.global_max_size_enabled else 0
         )
+
+        # 单文件下载超时(分钟), 0=不限
+        try:
+            _t_out = int(_config.get("download_timeout", 0) or 0)
+        except (TypeError, ValueError):
+            _t_out = 0
+        self.download_timeout = max(_t_out, 0)
 
         self.max_concurrent_transmissions = self.max_download_task * 5
 
@@ -1036,6 +1045,17 @@ class Application:
             except (TypeError, ValueError):
                 errors.append("max_size must be a non-negative integer (MB)")
 
+        # ---- 单文件下载超时(分钟, 0=不限) ----
+        if "download_timeout" in new_cfg:
+            try:
+                t_out = int(new_cfg["download_timeout"] or 0)
+                if t_out < 0:
+                    t_out = 0
+                self.download_timeout = t_out
+                self.config["download_timeout"] = t_out
+            except (TypeError, ValueError):
+                errors.append("download_timeout must be a non-negative integer (minutes)")
+
         # ---- chats ----
         if "chats" in new_cfg:
             chats = new_cfg["chats"]
@@ -1187,6 +1207,7 @@ class Application:
             "save_path": self.save_path,
             "max_size_enabled": self.global_max_size_enabled,
             "max_size": self.global_max_size_mb,
+            "download_timeout": self.download_timeout,
         }
 
     def load_config(self):

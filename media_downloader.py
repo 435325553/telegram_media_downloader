@@ -18,6 +18,7 @@ from module.download_stat import (
     update_download_status,
     get_download_result,
     is_task_deleted,
+    delete_task,
 )
 from module.get_chat_history_v2 import get_chat_history_v2
 from module.language import _t
@@ -473,9 +474,12 @@ async def download_media(
 
     message_id = message.id
 
+    # 单文件下载超时(秒): 0=不限
+    timeout_secs = app.download_timeout * 60 if app.download_timeout > 0 else None
+
     for retry in range(3):
         try:
-            temp_download_path = await client.download_media(
+            _dl_coro = client.download_media(
                 message,
                 file_name=temp_file_name,
                 progress=update_download_status,
@@ -487,6 +491,12 @@ async def download_media(
                     client,
                 ),
             )
+            if timeout_secs:
+                temp_download_path = await asyncio.wait_for(
+                    _dl_coro, timeout=timeout_secs
+                )
+            else:
+                temp_download_path = await _dl_coro
 
             if temp_download_path and isinstance(temp_download_path, str):
                 # 单任务删除：下载完成后丢弃文件,不保存到目标路径
@@ -506,6 +516,22 @@ async def download_media(
                 _move_to_download_path(temp_download_path, file_name)
                 # TODO: if not exist file size or media
                 return DownloadStatus.SuccessDownload, file_name
+        except asyncio.TimeoutError:
+            logger.warning(
+                f"Message[{message.id}]: "
+                f"{_t('download timed out')}(>{timeout_secs}s), "
+                f"{_t('retrying after')} {RETRY_TIME_OUT} {_t('seconds')}"
+            )
+            try:
+                client.stop_transmission()
+            except Exception:
+                pass
+            await asyncio.sleep(RETRY_TIME_OUT)
+            if _check_timeout(retry, message.id):
+                logger.error(
+                    f"Message[{message.id}]: "
+                    f"{_t('timing out after 3 retries, download skipped.')}"
+                )
         except pyrogram.errors.exceptions.bad_request_400.BadRequest:
             logger.warning(
                 f"Message[{message.id}]: {_t('file reference expired, refetching')}..."
@@ -541,6 +567,18 @@ async def download_media(
                 exc_info=True,
             )
             break
+    else:
+        # 重试 3 次仍未成功: 自动删除任务及其下载缓存,避免任务堆积
+        delete_task(node.chat_id, message.id)
+        try:
+            if temp_file_name and os.path.exists(temp_file_name):
+                os.remove(temp_file_name)
+        except Exception:
+            pass
+        logger.warning(
+            f"Message[{message.id}]: "
+            f"{_t('failed after 3 retries, task and cache auto-deleted.')}"
+        )
 
     return DownloadStatus.FailedDownload, None
 
