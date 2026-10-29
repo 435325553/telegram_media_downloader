@@ -688,15 +688,19 @@ async def download_chat_task(
 
 
 async def download_all_chat(client: pyrogram.Client):
-    """Download All chat"""
+    """Download All chat (并发处理所有频道,互不阻塞)"""
+    tasks = []
     for key, value in app.chat_download_config.items():
         value.node = TaskNode(chat_id=key)
-        try:
-            await download_chat_task(client, value, value.node)
-        except Exception as e:
-            logger.warning(f"Download {key} error: {e}")
-        finally:
-            value.need_check = True
+        tasks.append(download_chat_task(client, value, value.node))
+    if tasks:
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        for i, res in enumerate(results):
+            if isinstance(res, Exception):
+                key = list(app.chat_download_config.keys())[i]
+                logger.warning(f"Download {key} error: {res}")
+    for _, value in app.chat_download_config.items():
+        value.need_check = True
 
 
 async def run_until_all_task_finish():
