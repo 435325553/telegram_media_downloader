@@ -351,7 +351,7 @@
         tr.append('<td><input type="number" class="chat_last_cell" style="width:80px;" value="' + (last_id||0) + '" min="0"></td>');
         tr.append('<td><input type="number" class="chat_maxmb_cell" style="width:80px;" value="' + (max_mb||0) + '" min="0"></td>');
         tr.append('<td><input type="text" class="chat_filter_cell" style="width:120px;" value="' + esc(filter) + '" placeholder="如 video"></td>');
-        tr.append('<td><button class="layui-btn layui-btn-xs layui-btn-danger" onclick="$(this).closest(\'tr\').remove()">删除</button></td>');
+        tr.append('<td><button class="layui-btn layui-btn-xs layui-btn-danger" onclick="this.closest(\'tr\').remove()">删除</button></td>');
         $('#chats_tbody').append(tr);
       }
 
