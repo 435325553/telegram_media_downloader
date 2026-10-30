@@ -23,6 +23,12 @@ from module.app import (
     TaskType,
     UploadStatus,
 )
+from module.download_stat import (
+    get_download_result,
+    get_total_download_speed,
+    is_task_deleted,
+    is_task_paused,
+)
 from module.filter import Filter
 from module.get_chat_history_v2 import get_chat_history_v2
 from module.language import Language, _t
@@ -36,7 +42,7 @@ from module.pyrogram_extension import (
     set_meta_data,
     upload_telegram_chat_message,
 )
-from utils.format import replace_date_time, validate_title
+from utils.format import format_byte, replace_date_time, validate_title
 from utils.meta_data import MetaData
 
 # pylint: disable = C0301, R0902
@@ -264,6 +270,13 @@ class DownloadBot:
         )
         self.bot.add_handler(
             MessageHandler(
+                status_command,
+                filters=pyrogram.filters.command(["status"])
+                & pyrogram.filters.user(self.allowed_user_ids),
+            )
+        )
+        self.bot.add_handler(
+            MessageHandler(
                 get_info,
                 filters=pyrogram.filters.command(["get_info", "info"])
                 & pyrogram.filters.user(self.allowed_user_ids),
@@ -401,14 +414,22 @@ async def send_help_str(client: pyrogram.Client, chat_id):
         f"🌐 {_t('Version')}: {utils.__version__}`\n"
         f"{latest_release_str}\n"
         f"{_t('Available commands:')}\n"
-        f"/? {_t('Show available commands')}\n"
-        f"/info {_t('Get group and user info from message link')}\n"
-        f"/dl {_t('Download messages')}\n"
-        f"/fw {_t('Forward messages')}\n"
-        f"/lf {_t('Listen for forwarded messages')}\n"
-        f"/ftc {_t('Forward a specific media to a comment section')}\n"
-        f"/lang {_t('Set language')}\n"
-        f"/stop {_t('Stop bot download or forward')}\n"
+        f"/? - {_t('Show available commands')}\n"
+        f"/status - {_t('Show current download status')}\n"
+        f"/info - {_t('Get group and user info from message link')}\n"
+        f"     例: /info https://t.me/Jdjdhdhjjvg/1074\n"
+        f"/dl - {_t('Download messages')}\n"
+        f"     例: /dl https://t.me/fkdhlg 1 0   ({_t('0 means the end of the entire chat')})\n"
+        f"/fw - {_t('Forward messages')}\n"
+        f"     例: /fw https://t.me/c/1200000000 https://t.me/c/1300000000 1 400\n"
+        f"/lf - {_t('Listen for forwarded messages')}\n"
+        f"     例: /lf https://t.me/c/1200000000 https://t.me/c/1300000000\n"
+        f"/ftc - {_t('Forward a specific media to a comment section')}\n"
+        f"     例: /ftc https://t.me/c/1200000000 https://t.me/c/1300000000 1 400\n"
+        f"/lang - {_t('Set language')}  例: /lang zh\n"
+        f"/stop - {_t('Stop bot download or forward')}\n"
+        f"`\n"
+        f"说明: `[` `]` 表示可选项，非必填\n"
     )
 
     await client.send_message(chat_id, msg, reply_markup=update_keyboard)
@@ -427,6 +448,49 @@ async def help_command(client: pyrogram.Client, message: pyrogram.types.Message)
     """
 
     await send_help_str(client, message.chat.id)
+
+
+async def status_command(client: pyrogram.Client, message: pyrogram.types.Message):
+    """显示当前下载状态"""
+    result = get_download_result()
+    lines = ["📥 当前下载状态", ""]
+    total_count = 0
+    if not result:
+        lines.append("暂无下载任务")
+    else:
+        for chat_id, messages in result.items():
+            active = []
+            for idx, value in messages.items():
+                if is_task_deleted(chat_id, idx):
+                    continue
+                total_count += 1
+                paused = is_task_paused(chat_id, idx)
+                state = "⏸" if paused else "⬇️"
+                fname = os.path.basename(value.get("file_name", ""))
+                down_byte = value.get("down_byte", 0) or 0
+                total_size = value.get("total_size", 0) or 0
+                if paused:
+                    detail = "已暂停"
+                    if total_size:
+                        pct = round(down_byte / total_size * 100, 1)
+                        detail += f" · {pct}% · {format_byte(down_byte)}/{format_byte(total_size)}"
+                elif not down_byte:
+                    detail = f"等待下载 · 0/{format_byte(total_size)}"
+                else:
+                    pct = round(down_byte / total_size * 100, 1) if total_size else 0
+                    detail = (
+                        f"{pct}% · {format_byte(down_byte)}/{format_byte(total_size)}"
+                        f" · {format_byte(value.get('download_speed', 0))}/s"
+                    )
+                active.append(f"  {state} {fname}\n     {detail}")
+            if active:
+                title = _bot.app.chat_titles.get(str(chat_id), str(chat_id))
+                lines.append(f"🎬 {title} ({chat_id})")
+                lines.extend(active)
+                lines.append("")
+    speed = get_total_download_speed()
+    lines.append(f"⚡ 总速度: {format_byte(speed)}/s | 正在下载: {total_count} 个文件")
+    await client.send_message(message.from_user.id, "\n".join(lines))
 
 
 async def set_language(client: pyrogram.Client, message: pyrogram.types.Message):
