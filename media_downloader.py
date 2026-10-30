@@ -644,6 +644,30 @@ async def worker(client: pyrogram.client.Client):
             logger.exception(f"{e}")
 
 
+async def auto_restart_watcher():
+    """Web 定时重启: 到点退出进程, 依赖容器 restart: unless-stopped 自动拉起"""
+    import os as _os
+
+    while True:
+        try:
+            if app.auto_restart_enabled and app.auto_restart_interval_hours > 0:
+                interval = float(app.auto_restart_interval_hours) * 3600
+                logger.info(
+                    f"定时重启已启用: 每 {app.auto_restart_interval_hours} 小时重启一次"
+                )
+                await asyncio.sleep(interval)
+                if not app.is_running:
+                    return
+                logger.warning("定时重启触发, 程序退出(容器将自动拉起)...")
+                _os._exit(1)
+            else:
+                # 未启用时定期检查配置是否开启(30秒一次, 开销极小)
+                await asyncio.sleep(30)
+        except Exception as e:  # pylint: disable = W0718
+            logger.exception(f"auto_restart_watcher error: {e}")
+            await asyncio.sleep(60)
+
+
 async def download_chat_task(
     client: pyrogram.Client,
     chat_download_config: ChatDownloadConfig,
@@ -788,6 +812,7 @@ def main():
         app.loop.run_until_complete(_fetch_chat_titles())
 
         app.loop.create_task(download_all_chat(client))
+        app.loop.create_task(auto_restart_watcher())
         for _ in range(app.max_download_task):
             task = app.loop.create_task(worker(client))
             tasks.append(task)

@@ -72,6 +72,14 @@
           </div>
 
           <div class="config-row">
+            <label>定时重启</label>
+            <input type="checkbox" id="auto_restart_cb" style="vertical-align:middle;"> <span style="margin-right:10px;">启用</span>
+            <span>间隔</span>
+            <input type="number" id="auto_restart_hours_input" style="width:70px;" min="1" placeholder="6"> <span>小时</span>
+            <div style="font-size:12px; color:#888; margin-top:4px;">到时间后程序自动重启容器(需容器 restart: unless-stopped); 重启会中断进行中的下载任务, 完成后自动继续</div>
+          </div>
+
+          <div class="config-row">
             <label>下载的媒体类型</label>
             <div id="media_types_box" style="display:inline-block;vertical-align:top;line-height:2;">
               <label style="margin-right:14px;"><input type="checkbox" class="media_type_cb" value="photo"> 图片</label>
@@ -388,6 +396,8 @@
           language: $('#language_select').val(),
           max_download_task: parseInt($('#max_download_task_input').val()) || 1,
           max_download_task_per_chat: parseInt($('#max_per_chat_input').val()) || 0,
+          auto_restart_enabled: $('#auto_restart_cb').is(':checked'),
+          auto_restart_interval_hours: parseFloat($('#auto_restart_hours_input').val()) || 6,
           web_port: parseInt($('#web_port_input').val()) || 5000,
           save_path: $('#save_path_input').val().trim(),
           bot_token: $('#bot_token_input').val().trim(),
@@ -477,6 +487,8 @@
             // 并发/端口/路径
             $('#max_download_task_input').val(cfg.max_download_task || 1);
             $('#max_per_chat_input').val(cfg.max_download_task_per_chat || 0);
+            $('#auto_restart_cb').prop('checked', cfg.auto_restart_enabled === true);
+            $('#auto_restart_hours_input').val(cfg.auto_restart_interval_hours || 6);
             $('#web_port_input').val(cfg.web_port || 5000);
             $('#save_path_input').val(cfg.save_path || '/app/downloads');
             // 代理

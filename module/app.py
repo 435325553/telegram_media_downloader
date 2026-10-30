@@ -403,6 +403,9 @@ class Application:
         self.max_download_task_per_chat: int = 1
         # 频道昵称缓存: chat_id(str) -> title, 启动时从 Telegram 获取
         self.chat_titles: dict = {}
+        # 定时重启: 到点后程序退出, 依赖容器 restart: unless-stopped 自动拉起
+        self.auto_restart_enabled: bool = False
+        self.auto_restart_interval_hours: float = 6
         # 单文件下载超时(分钟), 0=不限
         self.download_timeout: int = 0
         # 全局大小限制(对所有下载生效,含机器人命令下载的文件)
@@ -511,6 +514,15 @@ class Application:
         except (TypeError, ValueError):
             _per_chat = 1
         self.max_download_task_per_chat = max(_per_chat, 0)
+        # 定时重启配置
+        self.auto_restart_enabled = bool(
+            _config.get("auto_restart_enabled", self.auto_restart_enabled)
+        )
+        try:
+            _ar_hours = float(_config.get("auto_restart_interval_hours", 6) or 6)
+        except (TypeError, ValueError):
+            _ar_hours = 6
+        self.auto_restart_interval_hours = max(_ar_hours, 0.01)
         # 全局大小限制: max_size_enabled(开关) + max_size(MB), 缺省默认500MB
         _g_enabled = _config.get("max_size_enabled", self.global_max_size_enabled)
         try:
@@ -1078,6 +1090,20 @@ class Application:
             except (TypeError, ValueError):
                 errors.append("download_timeout must be a non-negative integer (minutes)")
 
+        # ---- 定时重启 ----
+        if "auto_restart_enabled" in new_cfg:
+            self.auto_restart_enabled = bool(new_cfg["auto_restart_enabled"])
+            self.config["auto_restart_enabled"] = self.auto_restart_enabled
+        if "auto_restart_interval_hours" in new_cfg:
+            try:
+                ar_h = float(new_cfg["auto_restart_interval_hours"] or 6)
+                if ar_h <= 0:
+                    ar_h = 6
+                self.auto_restart_interval_hours = ar_h
+                self.config["auto_restart_interval_hours"] = ar_h
+            except (TypeError, ValueError):
+                errors.append("auto_restart_interval_hours must be a positive number (hours)")
+
         # ---- chats ----
         if "chats" in new_cfg:
             chats = new_cfg["chats"]
@@ -1231,6 +1257,8 @@ class Application:
             "max_size_enabled": self.global_max_size_enabled,
             "max_size": self.global_max_size_mb,
             "download_timeout": self.download_timeout,
+            "auto_restart_enabled": self.auto_restart_enabled,
+            "auto_restart_interval_hours": self.auto_restart_interval_hours,
             "max_download_task_per_chat": self.max_download_task_per_chat,
         }
 

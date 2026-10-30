@@ -28,6 +28,10 @@ max_size: 500
 # 单文件下载超时(分钟): 超过自动停止并重试(最多3次), 3次仍失败自动删除任务与缓存; 0=不限
 download_timeout: 0
 
+# 定时重启(Web配置也可调整): 到点后程序自动退出, 依赖容器 restart: unless-stopped 自动拉起
+auto_restart_enabled: false
+auto_restart_interval_hours: 6
+
 # 下载的媒体类型
 media_types:
 - video
