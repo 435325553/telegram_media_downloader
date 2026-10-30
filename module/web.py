@@ -225,6 +225,46 @@ def web_delete_task():
     return jsonify({"code": "1", "msg": "deleted"})
 
 
+@_flask_app.route("/delete_downloaded_file", methods=["POST"])
+@login_required
+def delete_downloaded_file():
+    """删除已下载的磁盘文件(不可恢复), 并清理空目录/扫描缓存"""
+    app_inst = getattr(_flask_app, "app_instance", None)
+    save_path = getattr(app_inst, "save_path", None) or "/app/downloads"
+    data = request.get_json(silent=True) or {}
+    path = data.get("path") or request.args.get("path")
+    if not path:
+        return jsonify({"code": "0", "msg": "missing path"})
+    try:
+        real = os.path.realpath(path)
+        base = os.path.realpath(save_path)
+        if not real.startswith(base + os.sep):
+            return jsonify({"code": "0", "msg": "path not allowed"})
+        if not os.path.isfile(real):
+            return jsonify({"code": "0", "msg": "not a file"})
+        os.remove(real)
+        # 清理空的日期目录/频道目录(自下而上, 只删空目录)
+        d = os.path.dirname(real)
+        while d and d.startswith(base) and d != base:
+            try:
+                os.rmdir(d)
+            except OSError:
+                break
+            d = os.path.dirname(d)
+        # 同步剔除磁盘扫描缓存, 避免5秒缓存窗口内列表"复活"
+        global _disk_scan_cache
+        if _disk_scan_cache.get("items"):
+            real_slash = real.replace("\\", "/")
+            _disk_scan_cache["items"] = [
+                it
+                for it in _disk_scan_cache["items"]
+                if it.get("save_path") != real_slash
+            ]
+        return jsonify({"code": "1", "msg": "deleted"})
+    except Exception as exc:  # pylint: disable = W0718
+        return jsonify({"code": "0", "msg": str(exc)})
+
+
 # ===================== 机器人 token 配置 API =====================
 
 @_flask_app.route("/get_bot_config")
