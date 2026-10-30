@@ -215,14 +215,14 @@ class DownloadBot:
         self.bot.add_handler(
             MessageHandler(
                 download_from_bot,
-                filters=pyrogram.filters.command(["download"])
+                filters=pyrogram.filters.command(["download", "dl"])
                 & pyrogram.filters.user(self.allowed_user_ids),
             )
         )
         self.bot.add_handler(
             MessageHandler(
                 forward_messages,
-                filters=pyrogram.filters.command(["forward"])
+                filters=pyrogram.filters.command(["forward", "fw"])
                 & pyrogram.filters.user(self.allowed_user_ids),
             )
         )
@@ -243,7 +243,7 @@ class DownloadBot:
         self.bot.add_handler(
             MessageHandler(
                 set_listen_forward_msg,
-                filters=pyrogram.filters.command(["listen_forward"])
+                filters=pyrogram.filters.command(["listen_forward", "lf"])
                 & pyrogram.filters.user(self.allowed_user_ids),
             )
         )
@@ -254,10 +254,18 @@ class DownloadBot:
                 & pyrogram.filters.user(self.allowed_user_ids),
             )
         )
+        # /? 与 /？ 也显示帮助(简洁快捷命令)
+        self.bot.add_handler(
+            MessageHandler(
+                help_command,
+                filters=pyrogram.filters.regex(r"^/(\?|？)\s*$")
+                & pyrogram.filters.user(self.allowed_user_ids),
+            )
+        )
         self.bot.add_handler(
             MessageHandler(
                 get_info,
-                filters=pyrogram.filters.command(["get_info"])
+                filters=pyrogram.filters.command(["get_info", "info"])
                 & pyrogram.filters.user(self.allowed_user_ids),
             )
         )
@@ -271,7 +279,7 @@ class DownloadBot:
         self.bot.add_handler(
             MessageHandler(
                 set_language,
-                filters=pyrogram.filters.command(["set_language"])
+                filters=pyrogram.filters.command(["set_language", "lang"])
                 & pyrogram.filters.user(self.allowed_user_ids),
             )
         )
@@ -317,7 +325,7 @@ class DownloadBot:
         self.bot.add_handler(
             MessageHandler(
                 forward_to_comments,
-                filters=pyrogram.filters.command(["forward_to_comments"])
+                filters=pyrogram.filters.command(["forward_to_comments", "ftc"])
                 & pyrogram.filters.user(self.allowed_user_ids),
             )
         )
@@ -393,17 +401,14 @@ async def send_help_str(client: pyrogram.Client, chat_id):
         f"🌐 {_t('Version')}: {utils.__version__}`\n"
         f"{latest_release_str}\n"
         f"{_t('Available commands:')}\n"
-        f"/help - {_t('Show available commands')}\n"
-        f"/get_info - {_t('Get group and user info from message link')}\n"
-        f"/download - {_t('Download messages')}\n"
-        f"/forward - {_t('Forward messages')}\n"
-        f"/listen_forward - {_t('Listen for forwarded messages')}\n"
-        f"/forward_to_comments - {_t('Forward a specific media to a comment section')}\n"
-        f"/set_language - {_t('Set language')}\n"
-        f"/stop - {_t('Stop bot download or forward')}\n\n"
-        f"{_t('**Note**: 1 means the start of the entire chat')},"
-        f"{_t('0 means the end of the entire chat')}\n"
-        f"`[` `]` {_t('means optional, not required')}\n"
+        f"/? {_t('Show available commands')}\n"
+        f"/info {_t('Get group and user info from message link')}\n"
+        f"/dl {_t('Download messages')}\n"
+        f"/fw {_t('Forward messages')}\n"
+        f"/lf {_t('Listen for forwarded messages')}\n"
+        f"/ftc {_t('Forward a specific media to a comment section')}\n"
+        f"/lang {_t('Set language')}\n"
+        f"/stop {_t('Stop bot download or forward')}\n"
     )
 
     await client.send_message(chat_id, msg, reply_markup=update_keyboard)

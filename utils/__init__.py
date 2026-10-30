@@ -1,5 +1,5 @@
 """Init namespace"""
 
-__version__ = "2.6.0"
+__version__ = "2.6.1"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2025 tangyoha <https://github.com/tangyoha>"
