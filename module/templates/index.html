@@ -65,7 +65,7 @@
               </table>
               <button class="layui-btn layui-btn-xs" onclick="add_chat_row()" style="margin-top:6px;">+ 添加频道</button>
             </div>
-            <div style="font-size:12px; color:#888; margin-top:4px;">可添加多个频道实现多频道同时监听下载; 起始消息ID=0 表示从头开始; 大小限制 0=跟随全局默认; 过滤器如 video、audio 可留空</div>
+            <div style="font-size:12px; color:#888; margin-top:4px;">可添加多个频道实现多频道同时监听下载; 起始消息ID=0 表示从头开始; 大小限制 0=跟随全局默认; 过滤器留空=下载全部, 只下载视频填 media_type=="video", 排除视频填 media_type!="video"</div>
           </div>
 
           <div class="config-row">
@@ -174,10 +174,10 @@
               &nbsp;&nbsp;程序运行完会自动更新这个值为已处理到的最新消息ID(断点续传),下次不会重复下载<br>
               · <b>大小限制(MB)</b>: 该频道单个文件超过此大小则跳过不下载,填 <code>0</code> 表示跟随全局大小限制<br>
               · <b>全局大小限制</b>: 对所有下载生效(含机器人命令下载),默认 <code>500</code> MB,填 <code>0</code> 表示不限; 频道填 <code>0</code> 时使用此全局值<br>
-              · <b>过滤器</b>: 只下载指定类型,如 <code>video</code>、<code>audio</code>、<code>document</code>,可留空下载全部<br>
+              · <b>过滤器</b>: 留空=下载全部; 只下载视频填 <code>media_type=="video"</code>, 只下载音频填 <code>media_type=="audio"</code>, 排除视频填 <code>media_type!="video"</code>; 可用字段: media_type / file_extension / caption / file_size<br>
               · <b>多频道</b>: 点"+ 添加频道"可加多个频道,程序会同时监听下载所有频道<br>
               示例: 下载 <code>https://t.me/madougirl</code> 从 36653 号消息往后的所有视频,限制 500MB 内<br>
-              &nbsp;&nbsp;→ 频道填 <code>https://t.me/madougirl</code>, 起始消息ID填 <code>36653</code>, 大小限制填 <code>500</code>, 过滤器填 <code>video</code><br>
+              &nbsp;&nbsp;→ 频道填 <code>https://t.me/madougirl</code>, 起始消息ID填 <code>36653</code>, 大小限制填 <code>500</code>, 过滤器填 <code>media_type=="video"</code><br>
               <b>③ Web 操作</b><br>
               · 暂停/继续/删除: 在"下载中"列表操作列点击对应按钮<br>
               · 完整配置(频道/媒体类型/语言/代理等): 在上方修改后点"保存并重启容器"<br>
@@ -253,7 +253,7 @@
         , height: 'full-160'
         , limit: 10000
         , cols: [[
-          { title: '选', width: 60, templet: function (d) { return '<input type="checkbox" class="dl_ck" data-key2="' + d.chat + '-' + d.id + '">'; } },
+          { title: '<input type="checkbox" class="dl_all" onclick="dl_select_all(this)" style="appearance:checkbox;-webkit-appearance:checkbox;width:18px;height:18px;margin:0;vertical-align:middle;display:inline-block;cursor:pointer;">', width: 60, templet: function (d) { return '<input type="checkbox" class="dl_ck" data-key2="' + d.chat + '-' + d.id + '" style="appearance:checkbox;-webkit-appearance:checkbox;width:18px;height:18px;margin:0;vertical-align:middle;display:inline-block;cursor:pointer;">'; } },
           { field: 'chat', title: '频道', width: 100 },
           { field: 'chat_nick', title: '频道昵称', width: 200, templet: function (d) { return chat_title_map[d.chat] || d.chat; } },
           { field: 'id', title: '消息ID', width: 100 }
@@ -294,7 +294,7 @@
         , height: 'full-160'
         , limit: 10000
         , cols: [[
-          { title: '选', width: 60, templet: function (d) { return '<input type="checkbox" class="done_ck" data-key2="' + d.chat + '-' + d.id + '">'; } },
+          { title: '<input type="checkbox" class="done_all" onclick="done_select_all(this)" style="appearance:checkbox;-webkit-appearance:checkbox;width:18px;height:18px;margin:0;vertical-align:middle;display:inline-block;cursor:pointer;">', width: 60, templet: function (d) { return '<input type="checkbox" class="done_ck" data-key2="' + d.chat + '-' + d.id + '" style="appearance:checkbox;-webkit-appearance:checkbox;width:18px;height:18px;margin:0;vertical-align:middle;display:inline-block;cursor:pointer;">'; } },
           { field: 'chat', title: '频道昵称', width: 200, templet: function (d) { return chat_title_map[d.chat] || d.chat; } },
           { field: 'date', title: '日期', width: 110 },
           { field: 'id', title: '消息ID', width: 100 }
@@ -362,12 +362,16 @@
         });
       }
 
-      // 下载中列表: 全选/取消
-      function dl_select_all(btn) {
+      // 下载中列表: 全选/取消(支持表头勾选框与工具栏按钮)
+      function dl_select_all(el) {
         var cks = $('div[lay-id="download_list"] .dl_ck');
         if (!cks.length) { return; }
-        var all_on = cks.filter(':checked').length == cks.length;
-        cks.prop('checked', !all_on);
+        var target = true;
+        if (el && el.checked !== undefined) { target = el.checked; }
+        else { target = !(cks.filter(':checked').length == cks.length); }
+        cks.prop('checked', target);
+        var head = $('div[lay-id="download_list"] .dl_all');
+        if (head.length) { head.prop('checked', target); }
       }
 
       // 下载中列表: 批量删除勾选的任务
@@ -403,16 +407,22 @@
             } else { fail++; }
           }
           layer.close(index);
+          var dlhead = $('div[lay-id="download_list"] .dl_all');
+          if (dlhead.length) { dlhead.prop('checked', false); }
           layer.msg('已删除 ' + done + ' 个' + (fail ? ', 失败 ' + fail + ' 个' : ''));
         });
       }
 
-      // 已下载列表: 全选/取消
-      function done_select_all(btn) {
+      // 已下载列表: 全选/取消(支持表头勾选框与工具栏按钮)
+      function done_select_all(el) {
         var cks = $('div[lay-id="already_download_list"] .done_ck');
         if (!cks.length) { return; }
-        var all_on = cks.filter(':checked').length == cks.length;
-        cks.prop('checked', !all_on);
+        var target = true;
+        if (el && el.checked !== undefined) { target = el.checked; }
+        else { target = !(cks.filter(':checked').length == cks.length); }
+        cks.prop('checked', target);
+        var head = $('div[lay-id="already_download_list"] .done_all');
+        if (head.length) { head.prop('checked', target); }
       }
 
       // 已下载列表: 批量删除勾选的磁盘文件(不可恢复)
@@ -458,6 +468,8 @@
             } else { fail++; }
           }
           layer.close(index);
+          var dhead = $('div[lay-id="already_download_list"] .done_all');
+          if (dhead.length) { dhead.prop('checked', false); }
           layer.msg('已删除 ' + done + ' 个文件' + (fail ? ', 失败 ' + fail + ' 个' : ''));
         });
       }
@@ -469,7 +481,7 @@
         tr.append('<td style="max-width:210px;">' + titleHtml + '<input type="text" class="chat_id_cell" style="width:185px;" value="' + esc(chat_id) + '" placeholder="-100xxxxxxxxx"></td>');
         tr.append('<td><input type="number" class="chat_last_cell" style="width:80px;" value="' + (last_id||0) + '" min="0"></td>');
         tr.append('<td><input type="number" class="chat_maxmb_cell" style="width:80px;" value="' + (max_mb||0) + '" min="0"></td>');
-        tr.append('<td><input type="text" class="chat_filter_cell" style="width:120px;" value="' + esc(filter) + '" placeholder="如 video"></td>');
+        tr.append('<td><input type="text" class="chat_filter_cell" style="width:150px;" value="' + esc(filter) + '" placeholder="留空=全部 或 media_type==&quot;video&quot;"></td>');
         tr.append('<td><button class="layui-btn layui-btn-xs layui-btn-danger" onclick="this.closest(\'tr\').remove()">删除</button></td>');
         $('#chats_tbody').append(tr);
       }
@@ -737,7 +749,7 @@
               // not found
               obj = $('div[lay-id="download_list"]  .layui-table-body .layui-table tbody')
               var tr = ' <tr data-index="' + result[i].chat + '-' + result[i].id + '">' +
-                '<td data-field="sel" data-key="1-0-0" class=""><div class="layui-table-cell laytable-cell-1-0-0"><input type="checkbox" class="dl_ck" data-key2="' + result[i].chat + '-' + result[i].id + '"></div></td>' +
+                '<td data-field="sel" data-key="1-0-0" class=""><div class="layui-table-cell laytable-cell-1-0-0"><input type="checkbox" class="dl_ck" data-key2="' + result[i].chat + '-' + result[i].id + '" style="appearance:checkbox;-webkit-appearance:checkbox;width:18px;height:18px;margin:0;vertical-align:middle;display:inline-block;cursor:pointer;"></div></td>' +
                 '<td data-field="chat" data-key="1-0-1" class=""><div class="layui-table-cell laytable-cell-1-0-1">' + result[i].chat + '</div></td>' +
                 '<td data-field="chat_nick" data-key="1-0-2" class=""><div class="layui-table-cell laytable-cell-1-0-2">' + (chat_title_map[result[i].chat] || result[i].chat) + '</div></td>' +
                 '<td data-field="id" data-key="1-0-3" class=""><div class="layui-table-cell laytable-cell-1-0-3">' + result[i].id + '</div></td>' +
@@ -812,7 +824,7 @@
               // not found
               obj = $('div[lay-id="already_download_list"]  .layui-table-body .layui-table tbody')
               var tr = ' <tr data-index="' + result[i].chat + '-' + result[i].id + '">' +
-                '<td data-field="sel" data-key="2-0-0" class=""><div class="layui-table-cell laytable-cell-2-0-0"><input type="checkbox" class="done_ck" data-key2="' + result[i].chat + '-' + result[i].id + '"></div></td>' +
+                '<td data-field="sel" data-key="2-0-0" class=""><div class="layui-table-cell laytable-cell-2-0-0"><input type="checkbox" class="done_ck" data-key2="' + result[i].chat + '-' + result[i].id + '" style="appearance:checkbox;-webkit-appearance:checkbox;width:18px;height:18px;margin:0;vertical-align:middle;display:inline-block;cursor:pointer;"></div></td>' +
                 '<td data-field="chat" data-key="2-0-1" class=""><div class="layui-table-cell laytable-cell-2-0-1">' + (chat_title_map[result[i].chat] || result[i].chat) + '</div></td>' +
                 '<td data-field="date" data-key="2-0-2" class=""><div class="layui-table-cell laytable-cell-2-0-2">' + result[i].date + '</div></td>' +
                 '<td data-field="id" data-key="2-0-3" class=""><div class="layui-table-cell laytable-cell-2-0-3">' + result[i].id + '</div></td>' +

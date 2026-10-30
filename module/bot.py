@@ -1021,7 +1021,7 @@ async def forward_message_impl(
             f"{_t('ForwardUsageLine4')}\n\n"
             f"{_t('ForwardExample')}:\n"
             f"<code>/forward https://t.me/c/1200000000 https://t.me/c/1300000000 1 400</code>\n"
-            f"<code>/forward https://t.me/c/1200000000 https://t.me/c/1300000000 1 400 video</code>\n",
+            f"<code>/forward https://t.me/c/1200000000 https://t.me/c/1300000000 1 400 media_type==\"video\"</code>\n",
             parse_mode=pyrogram.enums.ParseMode.HTML,
         )
 

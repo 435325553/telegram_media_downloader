@@ -2,7 +2,7 @@
 
 基于 [tangyoha/telegram_media_downloader](https://github.com/tangyoha/telegram_media_downloader) 二次开发的增强版。
 
-**版本：2.7.0**（基于上游 2.2.5 深度改造）
+**版本：2.7.1**（基于上游 2.2.5 深度改造）
 
 > 本版本在原项目基础上新增了 Web 可视化管理、任务暂停/继续/删除、网页全配置、全局+每频道大小限制、多频道同时监听、中文回复等能力，无需再手动编辑配置文件。
 
@@ -57,7 +57,7 @@ chat:
 - chat_id: -1001714422299               # 频道链接或数字ID
   last_read_message_id: 0              # 起始消息ID, 0=从头开始
   max_file_size: 0                     # 大小限制(MB), 0=跟随全局默认
-  download_filter: ''                  # 过滤器, 如 video/audio, 留空=全部
+  download_filter: ''                  # 过滤器, 留空=全部; 只下视频填 media_type=="video", 排除视频填 media_type!="video"
 ```
 
 **全局大小限制（对所有下载生效，含机器人命令下载的文件）：**
@@ -143,7 +143,7 @@ docker compose up -d
 - `https://t.me/madougirl`：频道链接
 - `36653`：起始消息 ID（t.me 链接里的数字）
 - `40000`：结束消息 ID（0=下载到最新）
-- `video`：过滤器（只下载视频，可留空）
+- `media_type=="video"`：过滤器（只下载视频；留空=全部；排除视频填 `media_type!="video"`）
 
 **转发消息到其他频道：**
 
@@ -156,7 +156,7 @@ docker compose up -d
 - 第二个链接：目标频道（机器人需是目标频道管理员）
 - `1`：起始消息 ID
 - `400`：结束消息 ID
-- `[过滤器]`：可选，如 `video`
+- `[过滤器]`：可选，如 `media_type=="video"`
 
 **设置频道大小限制：**
 
@@ -177,6 +177,13 @@ docker compose up -d
 ---
 
 ## 📦 版本更新记录
+
+### v2.7.1（2026-10-30）
+
+**修正：**
+- 过滤器字段示例更正：Web 配置面板、帮助文档、README 中原先示例（裸词 `video`/`audio`）误导，统一改为正确写法 `media_type=="video"`（留空=全部，排除视频填 `media_type!="video"`）
+
+---
 
 ### v2.7.0（2026-10-30）
 
