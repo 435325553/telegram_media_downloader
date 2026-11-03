@@ -301,6 +301,8 @@ class ChatDownloadConfig:
         self.download_filter: str = None
         self.ids_to_retry: list = []
         self.last_read_message_id = 0
+        # 已成功下载的消息id集合(按消息id去重, 持久化到 data.yaml)
+        self.already_download_ids: set = set()
         self.total_task: int = 0
         self.finish_task: int = 0
         self.need_check: bool = False
@@ -710,6 +712,14 @@ class Application:
                             self.chat_download_config[chat_id].ids_to_retry_dict[
                                 it
                             ] = True
+                        # 加载已下载消息id集合(按消息id去重)
+                        _ids = chat.get("already_download_ids", []) or []
+                        if isinstance(_ids, list):
+                            self.chat_download_config[chat_id].already_download_ids = {
+                                int(i)
+                                for i in _ids
+                                if str(i).lstrip("-").isdigit()
+                            }
         return True
 
     async def upload_file(
@@ -895,6 +905,10 @@ class Application:
 
             self.app_data["chat"][idx]["chat_id"] = key
             self.app_data["chat"][idx]["ids_to_retry"] = value.ids_to_retry
+            # 持久化已下载消息id集合(按消息id去重, 防跨日期目录重复下载)
+            self.app_data["chat"][idx]["already_download_ids"] = sorted(
+                value.already_download_ids
+            )
             idx += 1
 
         self.config["save_path"] = self.save_path
@@ -1132,6 +1146,12 @@ class Application:
                     except (TypeError, ValueError):
                         max_size = 0
                     cfg = ChatDownloadConfig()
+                    # 保留旧配置的已下载消息id集合, 避免Web保存配置后去重失效
+                    _old_cfg = self.chat_download_config.get(chat_id_num)
+                    if _old_cfg is not None:
+                        cfg.already_download_ids = set(
+                            _old_cfg.already_download_ids
+                        )
                     cfg.last_read_message_id = last_id
                     cfg.max_file_size = max_size
                     cfg.download_filter = str(item.get("download_filter", "") or "")
@@ -1289,6 +1309,48 @@ class Application:
             os.makedirs(self.session_file_path)
         set_language(self.language)
 
+    def init_already_download_ids_from_disk(self):
+        """启动时扫描 downloads 目录, 把已存在的媒体文件对应的消息id
+        并入各频道的 already_download_ids 集合。
+
+        背景: 下载目录可能按"下载日期"分目录(用户补丁), 同一条消息在不同
+        日期被重新扫描时目标路径不同, 原有的"文件是否存在"去重会失效,
+        导致同一视频被重复下载。这里以消息id为准做去重。
+        """
+        if not os.path.isdir(self.save_path):
+            return
+        # 频道目录名候选: chat_id 字符串 或 频道标题(经 validate_title)
+        for chat_id, cfg in self.chat_download_config.items():
+            dir_candidates = {validate_title(f"{chat_id}")}
+            title = self.chat_titles.get(str(chat_id), "")
+            if title:
+                dir_candidates.add(validate_title(title))
+
+            for chat_dir in os.listdir(self.save_path):
+                if chat_dir not in dir_candidates:
+                    continue
+                chat_path = os.path.join(self.save_path, chat_dir)
+                if not os.path.isdir(chat_path):
+                    continue
+                for date_dir in os.listdir(chat_path):
+                    dpath = os.path.join(chat_path, date_dir)
+                    if not os.path.isdir(dpath):
+                        continue
+                    for fn in os.listdir(dpath):
+                        fpath = os.path.join(dpath, fn)
+                        if not os.path.isfile(fpath):
+                            continue
+                        # 文件名形如 "消息ID - 原始文件名.扩展名"
+                        if " - " in fn:
+                            head = fn.split(" - ")[0].strip()
+                            if head.isdigit():
+                                cfg.already_download_ids.add(int(head))
+            if cfg.already_download_ids:
+                logger.info(
+                    f"chat[{chat_id}] 已从磁盘初始化 "
+                    f"{len(cfg.already_download_ids)} 个已下载消息id(去重)"
+                )
+
     def set_caption_name(
         self, chat_id: Union[int, str], media_group_id: Optional[str], caption: str
     ):
@@ -1371,6 +1433,12 @@ class Application:
 
         if node.chat_id not in self.chat_download_config:
             return
+
+        # 成功下载的消息id记入去重集合(自动扫描路径)
+        if download_status is DownloadStatus.SuccessDownload:
+            self.chat_download_config[node.chat_id].already_download_ids.add(
+                message_id
+            )
 
         self.chat_download_config[node.chat_id].finish_task += 1
 

@@ -310,6 +310,13 @@ async def download_task(
     if app.enable_download_txt and message.text and not message.media:
         download_status, file_name = await save_msg_to_file(app, node.chat_id, message)
 
+    # 成功下载的消息id记入去重集合(bot命令下载同样记录, 防重复)
+    if (
+        download_status is DownloadStatus.SuccessDownload
+        and node.chat_id in app.chat_download_config
+    ):
+        app.chat_download_config[node.chat_id].already_download_ids.add(message.id)
+
     if not node.bot:
         app.set_download_id(node, message.id, download_status)
 
@@ -399,6 +406,17 @@ async def download_media(
     media_size = 0
     _media = None
     message = await fetch_message(client, message)
+    # 兜底: 按消息id去重(覆盖机器人命令等所有下载入口)
+    if (
+        node
+        and node.chat_id in app.chat_download_config
+        and message.id
+        in app.chat_download_config[node.chat_id].already_download_ids
+    ):
+        logger.info(
+            f"id={message.id} {_t('already download,download skipped')}."
+        )
+        return DownloadStatus.SkipDownload, None
     try:
         for _type in media_types:
             _media = getattr(message, _type, None)
@@ -712,6 +730,14 @@ async def download_chat_task(
             continue
 
         if app.exec_filter(chat_download_config, meta_data):
+            # 已下载过的消息id直接跳过(按消息id去重, 防跨日期目录重复下载)
+            if message.id in chat_download_config.already_download_ids:
+                logger.info(
+                    f"id={message.id} {_t('already download,download skipped')}."
+                )
+                node.download_status[message.id] = DownloadStatus.SkipDownload
+                app.set_download_id(node, message.id, DownloadStatus.SkipDownload)
+                continue
             await add_download_task(message, node)
         else:
             node.download_status[message.id] = DownloadStatus.SkipDownload
@@ -810,6 +836,9 @@ def main():
                     app.chat_titles[str(_cid)] = ""
 
         app.loop.run_until_complete(_fetch_chat_titles())
+
+        # 用磁盘已下载文件初始化"已下载消息id"集合(按消息id去重)
+        app.init_already_download_ids_from_disk()
 
         app.loop.create_task(download_all_chat(client))
         app.loop.create_task(auto_restart_watcher())
