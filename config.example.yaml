@@ -32,6 +32,10 @@ download_timeout: 0
 auto_restart_enabled: false
 auto_restart_interval_hours: 6
 
+# 起始消息ID自动更新(Web配置中心可勾选): true=各频道"起始消息ID"自动更新为最后下载的消息ID(断点续传);
+# false=保持手动填写值不变(已下载内容仍按消息id去重跳过, 不会重复下载)
+auto_update_last_read_id: true
+
 # 下载的媒体类型
 media_types:
 - video

@@ -408,6 +408,9 @@ class Application:
         # 定时重启: 到点后程序退出, 依赖容器 restart: unless-stopped 自动拉起
         self.auto_restart_enabled: bool = False
         self.auto_restart_interval_hours: float = 6
+        # 起始消息ID自动更新: 勾选(默认)后, 频道"起始消息ID"自动更新为最后下载的消息ID(断点续传);
+        # 取消后保持手动填写值不变(已下载内容仍按消息id去重跳过, 不会重复下载)
+        self.auto_update_last_read_id: bool = True
         # 单文件下载超时(分钟), 0=不限
         self.download_timeout: int = 0
         # 全局大小限制(对所有下载生效,含机器人命令下载的文件)
@@ -525,6 +528,10 @@ class Application:
         except (TypeError, ValueError):
             _ar_hours = 6
         self.auto_restart_interval_hours = max(_ar_hours, 0.01)
+        # 起始消息ID自动更新开关(默认开启)
+        self.auto_update_last_read_id = bool(
+            _config.get("auto_update_last_read_id", self.auto_update_last_read_id)
+        )
         # 全局大小限制: max_size_enabled(开关) + max_size(MB), 缺省默认500MB
         _g_enabled = _config.get("max_size_enabled", self.global_max_size_enabled)
         try:
@@ -898,7 +905,8 @@ class Application:
             if idx >= len(self.app_data["chat"]):
                 self.app_data["chat"].append({})
 
-            if value.finish_task:
+            # 仅当"起始消息ID自动更新"开启时才把 last_read_message_id 写回 config
+            if value.finish_task and self.auto_update_last_read_id:
                 self.config["chat"][idx]["last_read_message_id"] = (
                     value.last_read_message_id + 1
                 )
@@ -1118,6 +1126,11 @@ class Application:
             except (TypeError, ValueError):
                 errors.append("auto_restart_interval_hours must be a positive number (hours)")
 
+        # ---- 起始消息ID自动更新开关 ----
+        if "auto_update_last_read_id" in new_cfg:
+            self.auto_update_last_read_id = bool(new_cfg["auto_update_last_read_id"])
+            self.config["auto_update_last_read_id"] = self.auto_update_last_read_id
+
         # ---- chats ----
         if "chats" in new_cfg:
             chats = new_cfg["chats"]
@@ -1279,6 +1292,7 @@ class Application:
             "download_timeout": self.download_timeout,
             "auto_restart_enabled": self.auto_restart_enabled,
             "auto_restart_interval_hours": self.auto_restart_interval_hours,
+            "auto_update_last_read_id": self.auto_update_last_read_id,
             "max_download_task_per_chat": self.max_download_task_per_chat,
         }
 

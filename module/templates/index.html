@@ -69,6 +69,12 @@
           </div>
 
           <div class="config-row">
+            <label>起始ID自动更新</label>
+            <input type="checkbox" id="auto_update_last_id_cb" style="vertical-align:middle;"> <span style="margin-right:10px;">启用(勾选后各频道"起始消息ID"自动更新为最后下载的消息ID)</span>
+            <div style="font-size:12px; color:#888; margin-top:4px;">取消勾选后, 各频道"起始消息ID"保持手动填写值不变, 不会随下载进度改动(已下载内容仍按消息ID去重跳过, 不会重复下载)</div>
+          </div>
+
+          <div class="config-row">
             <label>全局大小限制</label>
             <input type="checkbox" id="max_size_enabled_cb" style="vertical-align:middle;"> <span style="margin-right:10px;">启用</span>
             <input type="number" id="max_size_input" style="width:90px;" min="0" placeholder="500"> <span>MB</span>
@@ -521,6 +527,7 @@
           max_download_task_per_chat: parseInt($('#max_per_chat_input').val()) || 0,
           auto_restart_enabled: $('#auto_restart_cb').is(':checked'),
           auto_restart_interval_hours: parseFloat($('#auto_restart_hours_input').val()) || 6,
+          auto_update_last_read_id: $('#auto_update_last_id_cb').is(':checked'),
           web_port: parseInt($('#web_port_input').val()) || 5000,
           save_path: $('#save_path_input').val().trim(),
           bot_token: $('#bot_token_input').val().trim(),
@@ -612,6 +619,7 @@
             $('#max_per_chat_input').val(cfg.max_download_task_per_chat || 0);
             $('#auto_restart_cb').prop('checked', cfg.auto_restart_enabled === true);
             $('#auto_restart_hours_input').val(cfg.auto_restart_interval_hours || 6);
+            $('#auto_update_last_id_cb').prop('checked', cfg.auto_update_last_read_id !== false);
             $('#web_port_input').val(cfg.web_port || 5000);
             $('#save_path_input').val(cfg.save_path || '/app/downloads');
             // 代理
