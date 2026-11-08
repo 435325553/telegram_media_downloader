@@ -15,6 +15,7 @@ from ruamel import yaml
 from module.cloud_drive import CloudDrive, CloudDriveConfig
 from module.filter import Filter
 from module.language import Language, set_language
+from module.speed_limit import limiter
 from utils.format import replace_date_time, validate_title
 from utils.meta_data import MetaData
 
@@ -528,6 +529,13 @@ class Application:
         except (TypeError, ValueError):
             _ar_hours = 6
         self.auto_restart_interval_hours = max(_ar_hours, 0.01)
+
+        # 全局下载限速(MB/s, 0=不限): 启动时恢复上次持久化的值
+        try:
+            _speed_limit = float(_config.get("download_speed_limit", 0) or 0)
+        except (TypeError, ValueError):
+            _speed_limit = 0.0
+        limiter.configure(max(_speed_limit, 0.0))
         # 起始消息ID自动更新开关(默认开启)
         self.auto_update_last_read_id = bool(
             _config.get("auto_update_last_read_id", self.auto_update_last_read_id)
@@ -1131,6 +1139,17 @@ class Application:
             self.auto_update_last_read_id = bool(new_cfg["auto_update_last_read_id"])
             self.config["auto_update_last_read_id"] = self.auto_update_last_read_id
 
+        # ---- 全局下载限速(MB/s, 0=不限速), 配置中心保存时也即时生效 ----
+        if "download_speed_limit" in new_cfg:
+            try:
+                sl = float(new_cfg["download_speed_limit"] or 0)
+                if sl < 0:
+                    sl = 0.0
+                limiter.configure(sl)
+                self.config["download_speed_limit"] = sl
+            except (TypeError, ValueError):
+                errors.append("download_speed_limit must be a non-negative number")
+
         # ---- chats ----
         if "chats" in new_cfg:
             chats = new_cfg["chats"]
@@ -1223,6 +1242,26 @@ class Application:
         self.loop.call_later(2.0, _set_flag)
 
 
+    def set_download_speed_limit(self, mbps: float) -> dict:
+        """运行时设置全局下载限速(MB/s)并持久化, 不重启容器。
+
+        只改写 config.yaml 中的限速字段, 不走 update_config(): 后者会重算
+        chat 的 last_read_message_id / ids_to_retry, 与本操作无关且有副作用。
+        """
+        value = max(float(mbps), 0.0)
+        limiter.configure(value)
+        self.config["download_speed_limit"] = value
+
+        cfg_path = os.path.join(os.path.abspath("."), self.config_file)
+        with open(cfg_path, "r", encoding="utf-8") as f:
+            disk_cfg = _yaml.load(f.read()) or {}
+        disk_cfg["download_speed_limit"] = value
+        # config.yaml 是 docker bind mount 的单文件挂载点, os.replace 会报
+        # EBUSY(Resource busy); 与项目原有 update_config() 一致, 采用原地写
+        with open(cfg_path, "w", encoding="utf-8") as f:
+            _yaml.dump(disk_cfg, f)
+        return limiter.status()
+
     def get_config_summary(self) -> dict:
         """Return a human-readable summary of the current config for the web UI.
 
@@ -1294,6 +1333,7 @@ class Application:
             "auto_restart_interval_hours": self.auto_restart_interval_hours,
             "auto_update_last_read_id": self.auto_update_last_read_id,
             "max_download_task_per_chat": self.max_download_task_per_chat,
+            "download_speed_limit": limiter.mbps,
         }
 
     def load_config(self):

@@ -49,6 +49,10 @@ web_port: 5000
 # 保存路径
 save_path: /app/downloads
 
+# 全局下载限速(MB/s, 支持小数): 0=不限速; 所有下载任务共享该上限
+# Web 配置中心可随时修改并即时生效, 无需重启容器
+download_speed_limit: 0
+
 # 并发下载数
 max_download_task: 2
 

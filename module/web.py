@@ -10,6 +10,7 @@ from flask_login import LoginManager, UserMixin, login_required, login_user
 
 import utils
 from module.app import Application
+from module.speed_limit import limiter
 from module.download_stat import (
     DownloadState,
     get_download_result,
@@ -323,6 +324,36 @@ def set_chat_max_size():
 def get_app_version():
     """Get telegram_media_downloader version"""
     return utils.__version__
+
+
+# ===================== 全局下载限速 API =====================
+
+@_flask_app.route("/get_speed_limit")
+@login_required
+def get_speed_limit():
+    """当前全局下载限速状态"""
+    return jsonify({"code": "1", **limiter.status()})
+
+
+@_flask_app.route("/set_speed_limit", methods=["POST"])
+@login_required
+def set_speed_limit():
+    """设置全局下载限速(MB/s), 立即生效且持久化, 无需重启容器"""
+    _app = getattr(_flask_app, "app_instance", None)
+    if _app is None:
+        return jsonify({"code": "0", "msg": "app not ready"})
+    data = request.get_json(silent=True) or request.form or {}
+    try:
+        mbps = float(data.get("mbps", 0) or 0)
+    except (TypeError, ValueError):
+        return jsonify({"code": "0", "msg": "mbps must be a number"})
+    if mbps < 0 or mbps > 1000:
+        return jsonify({"code": "0", "msg": "mbps must be between 0 and 1000"})
+    try:
+        result = _app.set_download_speed_limit(mbps)
+    except Exception as exc:
+        return jsonify({"code": "0", "msg": str(exc)})
+    return jsonify({"code": "1", **result})
 
 
 # 磁盘扫描结果缓存(5秒内复用,避免高频轮询反复扫盘)
