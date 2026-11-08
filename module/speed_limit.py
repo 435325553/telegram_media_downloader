@@ -45,6 +45,7 @@ class GlobalSpeedLimiter:
         return {
             "enabled": self._rate > 0,
             "mbps": self._mbps,
+            "kbps": round(self._mbps * 1024, 2),
             "rate_bps": int(self._rate),
             "updated_at": self._updated_at,
             "total_bytes": self._total_bytes,

@@ -50,7 +50,8 @@ web_port: 5000
 save_path: /app/downloads
 
 # 全局下载限速(MB/s, 支持小数): 0=不限速; 所有下载任务共享该上限
-# Web 配置中心可随时修改并即时生效, 无需重启容器
+# Web 配置中心单位可选 MB/s 或 KB/s(1 MB/s = 1024 KB/s), 随时修改即时生效, 无需重启容器
+# 例: 512 KB/s = 0.5 MB/s
 download_speed_limit: 0
 
 # 并发下载数

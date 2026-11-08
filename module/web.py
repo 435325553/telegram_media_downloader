@@ -347,6 +347,9 @@ def set_speed_limit():
         mbps = float(data.get("mbps", 0) or 0)
     except (TypeError, ValueError):
         return jsonify({"code": "0", "msg": "mbps must be a number"})
+    # 可选 unit=kb: 直接以 KB/s(1024 B/s) 传值, 内部统一换算成 MB/s
+    if str(data.get("unit", "")).lower() in ("kb", "kbs", "kb/s"):
+        mbps = mbps / 1024.0
     if mbps < 0 or mbps > 1000:
         return jsonify({"code": "0", "msg": "mbps must be between 0 and 1000"})
     try:

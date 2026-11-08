@@ -89,11 +89,16 @@
 
           <div class="config-row" style="border:1px solid #e6e6e6;border-radius:4px;padding:10px 12px;background:#fafafa;">
             <label style="color:#1E9FFF;">全局下载限速</label>
-            <input type="number" id="speed_limit_input" style="width:100px;" min="0" max="1000" step="0.1" placeholder="0"> <span>MB/s</span>
+            <input type="number" id="speed_limit_input" style="width:100px;" min="0" step="0.1" placeholder="0">
+            <select id="speed_limit_unit" style="height:32px;border:1px solid #e6e6e6;border-radius:4px;">
+              <option value="mb">MB/s</option>
+              <option value="kb">KB/s</option>
+            </select>
+            <span id="speed_limit_hint" style="margin-left:6px;font-size:12px;color:#888;"></span>
             <button class="layui-btn layui-btn-sm" onclick="apply_speed_limit()">应用(立即生效)</button>
             <button class="layui-btn layui-btn-sm layui-btn-primary" onclick="apply_speed_limit(0)">解除限速</button>
             <span id="speed_limit_msg" style="margin-left:10px;font-size:13px;color:#888;"></span>
-            <div style="font-size:12px; color:#888; margin-top:6px;">所有下载任务共享这一个带宽上限(含机器人命令触发的下载); 填 0 表示不限速; 修改后立即生效, 无需重启容器, 并写入 config.yaml 长期保留。限速过低可能触发单文件下载超时重试。</div>
+            <div style="font-size:12px; color:#888; margin-top:6px;">单位可选 MB/s 或 KB/s(1 MB/s = 1024 KB/s), 填写后点"应用"立即生效; 所有下载任务共享这一个带宽上限(含机器人命令触发的下载); 填 0 表示不限速; 无需重启容器, 数值写入 config.yaml 长期保留。限速过低可能触发单文件下载超时重试。</div>
           </div>
 
           <div class="config-row">
@@ -517,6 +522,9 @@
       }
 
       function collect_config() {
+        // 限速输入按所选单位统一换算成 MB/s 再提交
+        var sl_raw = parseFloat($('#speed_limit_input').val()) || 0;
+        var sl_mbps = ($('#speed_limit_unit').val() === 'kb') ? sl_raw / 1024 : sl_raw;
         var chats = [];
         $('#chats_tbody tr').each(function () {
           var cid = $(this).find('.chat_id_cell').val().trim();
@@ -543,7 +551,7 @@
           max_size_enabled: $('#max_size_enabled_cb').prop('checked'),
           max_size: parseFloat($('#max_size_input').val()) || 0,
           download_timeout: parseInt($('#download_timeout_input').val()) || 0,
-          download_speed_limit: parseFloat($('#speed_limit_input').val()) || 0,
+          download_speed_limit: sl_mbps,
           proxy: null
         };
         if ($('#proxy_enable').val() == '1') {
@@ -650,8 +658,16 @@
             $('#max_size_input').val(cfg.max_size || 0);
             // 下载超时(分钟)
             $('#download_timeout_input').val(cfg.download_timeout || 0);
-            // 全局下载限速(MB/s)
-            $('#speed_limit_input').val(cfg.download_speed_limit || 0);
+            // 全局下载限速: <1 MB/s 自动切成 KB/s 显示, 与输入框单位保持一致
+            var sl = parseFloat(cfg.download_speed_limit) || 0;
+            if (sl > 0 && sl < 1) {
+              $('#speed_limit_unit').val('kb');
+              $('#speed_limit_input').val(+(sl * 1024).toFixed(2));
+            } else {
+              $('#speed_limit_unit').val('mb');
+              $('#speed_limit_input').val(sl);
+            }
+            update_speed_limit_hint();
           }
         });
       }
@@ -673,9 +689,22 @@
         });
       }
 
+      function speed_limit_to_mbps(raw) {
+        return ($('#speed_limit_unit').val() === 'kb') ? raw / 1024 : raw;
+      }
+      function fmt_speed_limit(mbps) {
+        if (mbps >= 1) return mbps + ' MB/s (' + (mbps * 1024).toFixed(0) + ' KB/s)';
+        return (mbps * 1024).toFixed(1) + ' KB/s (' + mbps + ' MB/s)';
+      }
+      function update_speed_limit_hint() {
+        var raw = parseFloat($('#speed_limit_input').val()) || 0;
+        var mb = speed_limit_to_mbps(raw);
+        $('#speed_limit_hint').text(raw > 0 ? ('≈ ' + fmt_speed_limit(mb)) : '不限速');
+      }
       function apply_speed_limit(forced) {
-        var v = (forced === 0) ? 0 : parseFloat($('#speed_limit_input').val());
-        if (isNaN(v) || v < 0) { layer.msg('请输入不小于 0 的数值'); return; }
+        var raw = (forced === 0) ? 0 : parseFloat($('#speed_limit_input').val());
+        if (isNaN(raw) || raw < 0) { layer.msg('请输入不小于 0 的数值'); return; }
+        var v = speed_limit_to_mbps(raw);
         var box = $('#speed_limit_msg');
         box.html('提交中...');
         $.ajax({
@@ -686,7 +715,7 @@
           , dataType: "json"
           , success: function (result) {
             if (result.code == "1") {
-              var txt = result.enabled ? ('已生效: ' + result.mbps + ' MB/s (无需重启)') : '已解除限速';
+              var txt = result.enabled ? ('已生效: ' + fmt_speed_limit(result.mbps) + ' (无需重启)') : '已解除限速';
               box.html('<span style="color:#5FB878;">' + txt + '</span>');
               layer.msg(txt);
             } else {
@@ -925,6 +954,10 @@
       window.load_bot_config = load_bot_config;
       window.save_bot_token = save_bot_token;
       window.apply_speed_limit = apply_speed_limit;
+      window.update_speed_limit_hint = update_speed_limit_hint;
+      $('#speed_limit_input').on('input', update_speed_limit_hint);
+      $('#speed_limit_unit').on('change', update_speed_limit_hint);
+      update_speed_limit_hint();
       window.collect_config = collect_config;
       window.download_state_change = download_state_change;
       window.update_download_list = update_download_list;
