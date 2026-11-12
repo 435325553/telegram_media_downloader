@@ -2,6 +2,7 @@
 
 import asyncio
 import os
+import re
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -304,6 +305,8 @@ class ChatDownloadConfig:
         self.last_read_message_id = 0
         # 已成功下载的消息id集合(按消息id去重, 持久化到 data.yaml)
         self.already_download_ids: set = set()
+        # 失败重试次数统计(按消息id), 超过上限不再重试, 避免每次重启重复下载同一文件
+        self.retry_counts: dict = {}
         self.total_task: int = 0
         self.finish_task: int = 0
         self.need_check: bool = False
@@ -412,6 +415,12 @@ class Application:
         # 起始消息ID自动更新: 勾选(默认)后, 频道"起始消息ID"自动更新为最后下载的消息ID(断点续传);
         # 取消后保持手动填写值不变(已下载内容仍按消息id去重跳过, 不会重复下载)
         self.auto_update_last_read_id: bool = True
+        # 状态落盘(断点/已下载id/重试列表): 下载过程中定期写回, 防止强杀或容器重启丢状态后重复下载
+        self.state_dirty: bool = False
+        self.state_save_interval: float = 5.0
+        self._last_state_save_ts: float = 0.0
+        # 同一消息失败重试上限, 0=不限制
+        self.max_retry_times: int = 3
         # 单文件下载超时(分钟), 0=不限
         self.download_timeout: int = 0
         # 全局大小限制(对所有下载生效,含机器人命令下载的文件)
@@ -735,6 +744,28 @@ class Application:
                                 for i in _ids
                                 if str(i).lstrip("-").isdigit()
                             }
+                        # 断点以 data.yaml 的较大值为准(config.yaml 可能因强杀没来得及更新)
+                        # 仅在"起始消息ID自动更新"开启时生效; 关闭时始终用手填的起始ID
+                        _lr = chat.get("last_read_message_id", 0) or 0
+                        if self.auto_update_last_read_id:
+                            try:
+                                self.chat_download_config[
+                                    chat_id
+                                ].last_read_message_id = max(
+                                    self.chat_download_config[chat_id].last_read_message_id,
+                                    int(_lr),
+                                )
+                            except (TypeError, ValueError):
+                                pass
+                        # 恢复失败重试计数(用于重试上限判定)
+                        _rc = chat.get("retry_counts", {}) or {}
+                        if isinstance(_rc, dict):
+                            self.chat_download_config[chat_id].retry_counts = {
+                                int(k): int(v)
+                                for k, v in _rc.items()
+                                if str(k).lstrip("-").isdigit()
+                                and str(v).lstrip("-").isdigit()
+                            }
         return True
 
     async def upload_file(
@@ -878,6 +909,46 @@ class Application:
 
         return True
 
+    def _atomic_dump(self, path: str, data):
+        """写 yaml: 先写临时文件再 os.replace, 避免进程被强杀时把配置写坏。
+
+        注意: config.yaml/data.yaml 在 docker 里是"单文件 bind mount",
+        对挂载点本身做 rename 会报 EBUSY(Resource busy), 这时退回原地写。
+        """
+        tmp_path = path + ".tmp"
+        with open(tmp_path, "w", encoding="utf-8") as yaml_file:
+            _yaml.dump(data, yaml_file)
+        try:
+            os.replace(tmp_path, path)
+        except OSError:
+            with open(path, "w", encoding="utf-8") as yaml_file:
+                _yaml.dump(data, yaml_file)
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
+
+    def flush_state(self, force: bool = False) -> bool:
+        """把运行状态(断点/已下载消息id/重试列表)写回 config.yaml 与 data.yaml。
+
+        下载过程中频繁调用, 用 state_save_interval 节流;
+        force=True 时无条件写(退出/重启前调用, 防止丢断点导致重复下载)。
+        """
+        if not force:
+            if not self.state_dirty:
+                return False
+            if time.time() - self._last_state_save_ts < self.state_save_interval:
+                return False
+        try:
+            self.update_config(immediate=True)
+            self.state_dirty = False
+            self._last_state_save_ts = time.time()
+            return True
+        except Exception as e:  # pylint: disable = W0718
+            logger.exception(f"flush_state error: {e}")
+            self._last_state_save_ts = time.time()
+            return False
+
     # pylint: disable = R0912
     def update_config(self, immediate: bool = True):
         """update config
@@ -887,45 +958,71 @@ class Application:
         immediate: bool
             If update config immediate,default True
         """
-        # TODO: fix this not exist chat
-        if not self.app_data.get("chat") and self.config.get("chat"):
-            self.app_data["chat"] = [
-                {"chat_id": i} for i in range(0, len(self.config["chat"]))
-            ]
-        idx = 0
+        if not isinstance(self.app_data.get("chat"), list):
+            self.app_data["chat"] = []
+        app_chat = self.app_data["chat"]
+        cfg_chats = self.config.get("chat")
+        if not isinstance(cfg_chats, list):
+            cfg_chats = None
+        # 按 chat_id 对齐 config/app_data, 不再依赖列表下标
+        # (频道顺序变化时按下标写会把断点/去重集合写到别的频道, 造成重复下载或误跳过)
         # pylint: disable = R1733
         for key, value in self.chat_download_config.items():
             # pylint: disable = W0201
             unfinished_ids = set(value.ids_to_retry)
 
             for it in value.ids_to_retry:
-                if  value.node.download_status.get(
+                if value.node.download_status.get(
                     it, DownloadStatus.FailedDownload
                 ) in [DownloadStatus.SuccessDownload, DownloadStatus.SkipDownload]:
-                    unfinished_ids.remove(it)
+                    unfinished_ids.discard(it)
 
             for _idx, _value in value.node.download_status.items():
                 if DownloadStatus.SuccessDownload != _value and DownloadStatus.SkipDownload != _value:
                     unfinished_ids.add(_idx)
 
-            self.chat_download_config[key].ids_to_retry = list(unfinished_ids)
+            # 失败次数达到上限的消息不再重试(避免每次重启都重复下载同一个失败文件)
+            if self.max_retry_times > 0:
+                for it in list(unfinished_ids):
+                    if int(value.retry_counts.get(it, 0)) >= self.max_retry_times:
+                        unfinished_ids.discard(it)
 
-            if idx >= len(self.app_data["chat"]):
-                self.app_data["chat"].append({})
+            value.ids_to_retry = sorted(unfinished_ids)
+            value.ids_to_retry_dict = {it: True for it in value.ids_to_retry}
 
-            # 仅当"起始消息ID自动更新"开启时才把 last_read_message_id 写回 config
-            if value.finish_task and self.auto_update_last_read_id:
-                self.config["chat"][idx]["last_read_message_id"] = (
-                    value.last_read_message_id + 1
-                )
-
-            self.app_data["chat"][idx]["chat_id"] = key
-            self.app_data["chat"][idx]["ids_to_retry"] = value.ids_to_retry
+            entry = None
+            for item in app_chat:
+                if isinstance(item, dict) and item.get("chat_id") == key:
+                    entry = item
+                    break
+            if entry is None:
+                entry = {"chat_id": key}
+                app_chat.append(entry)
+            entry["ids_to_retry"] = value.ids_to_retry
             # 持久化已下载消息id集合(按消息id去重, 防跨日期目录重复下载)
-            self.app_data["chat"][idx]["already_download_ids"] = sorted(
-                value.already_download_ids
-            )
-            idx += 1
+            entry["already_download_ids"] = sorted(value.already_download_ids)
+            entry["retry_counts"] = {
+                str(k): int(v) for k, v in value.retry_counts.items() if int(v) > 0
+            }
+            # 断点: 仅在"起始消息ID自动更新"开启时持久化扫描断点
+            # (关闭时保持 config.yaml 里手填的起始ID, 每次启动从头扫描, 靠已下载id去重跳过)
+            if self.auto_update_last_read_id:
+                entry["last_read_message_id"] = value.last_read_message_id
+            else:
+                entry.pop("last_read_message_id", None)
+
+            if cfg_chats is not None:
+                cfg_entry = None
+                for item in cfg_chats:
+                    if isinstance(item, dict) and item.get("chat_id") == key:
+                        cfg_entry = item
+                        break
+                if cfg_entry is None:
+                    cfg_entry = {"chat_id": key}
+                    cfg_chats.append(cfg_entry)
+                # 仅当"起始消息ID自动更新"开启时才把 last_read_message_id 写回 config
+                if self.auto_update_last_read_id:
+                    cfg_entry["last_read_message_id"] = value.last_read_message_id
 
         self.config["save_path"] = self.save_path
         self.config["file_path_prefix"] = self.file_path_prefix
@@ -943,18 +1040,10 @@ class Application:
             self.config.pop("last_read_message_id")
 
         self.config["language"] = self.language.name
-        # for it in self.downloaded_ids:
-        #    self.already_download_ids_set.add(it)
-
-        # self.app_data["already_download_ids"] = list(self.already_download_ids_set)
 
         if immediate:
-            with open(self.config_file, "w", encoding="utf-8") as yaml_file:
-                _yaml.dump(self.config, yaml_file)
-
-        if immediate:
-            with open(self.app_data_file, "w", encoding="utf-8") as yaml_file:
-                _yaml.dump(self.app_data, yaml_file)
+            self._atomic_dump(self.config_file, self.config)
+            self._atomic_dump(self.app_data_file, self.app_data)
 
     def set_language(self, language: Language):
         """Set Language"""
@@ -1217,12 +1306,19 @@ class Application:
                             app_chat[idx]["chat_id"] = item["chat_id"]
                             app_chat[idx].pop("ids_to_retry", None)
 
-        # 写入 config.yaml
+        # 写入前先用内存中的真实状态刷新断点/去重集合,
+        # 否则会用旧的 data.yaml(app_data) 覆盖, 丢掉进程内已下载id → 重启后重复下载
         try:
-            with open(self.config_file, "w", encoding="utf-8") as yaml_file:
-                _yaml.dump(self.config, yaml_file)
-            with open(self.app_data_file, "w", encoding="utf-8") as yaml_file:
-                _yaml.dump(self.app_data, yaml_file)
+            self.update_config(immediate=False)
+        except Exception as e:  # pylint: disable = W0718
+            logger.warning(f"apply_web_config refresh state error: {e}")
+
+        # 写入 config.yaml / data.yaml (原子写, 防强杀写坏)
+        try:
+            self._atomic_dump(self.config_file, self.config)
+            self._atomic_dump(self.app_data_file, self.app_data)
+            self.state_dirty = False
+            self._last_state_save_ts = time.time()
         except Exception as e:
             errors.append(f"failed to write config: {e}")
 
@@ -1390,13 +1486,17 @@ class Application:
                     dpath = os.path.join(chat_path, date_dir)
                     if not os.path.isdir(dpath):
                         continue
-                    for fn in os.listdir(dpath):
-                        fpath = os.path.join(dpath, fn)
-                        if not os.path.isfile(fpath):
-                            continue
-                        # 文件名形如 "消息ID - 原始文件名.扩展名"
-                        if " - " in fn:
+                    # 递归扫描(目录层级可能不止 频道/日期 两层)
+                    for root, _dirs, files in os.walk(dpath):
+                        for fn in files:
+                            fpath = os.path.join(root, fn)
+                            if not os.path.isfile(fpath):
+                                continue
+                            # 文件名形如 "消息ID - 原始文件名.扩展名"; 兼容无分隔符的纯前缀
                             head = fn.split(" - ")[0].strip()
+                            if not head.isdigit():
+                                m = re.match(r"^(\d+)", fn)
+                                head = m.group(1) if m else ""
                             if head.isdigit():
                                 cfg.already_download_ids.add(int(head))
             if cfg.already_download_ids:
@@ -1494,8 +1594,15 @@ class Application:
                 message_id
             )
 
+        # 失败的消息累计重试次数, 达到上限后不再重试(防每次重启重复下载)
+        if download_status is DownloadStatus.FailedDownload:
+            cfg = self.chat_download_config[node.chat_id]
+            cfg.retry_counts[message_id] = int(cfg.retry_counts.get(message_id, 0)) + 1
+
         self.chat_download_config[node.chat_id].finish_task += 1
 
         self.chat_download_config[node.chat_id].last_read_message_id = max(
             self.chat_download_config[node.chat_id].last_read_message_id, message_id
         )
+        # 标记状态变化, 由 state_persist_watcher 定期落盘
+        self.state_dirty = True

@@ -3,6 +3,7 @@ import asyncio
 import logging
 import os
 import shutil
+import signal
 import time
 from datetime import datetime
 from typing import List, Optional, Tuple, Union
@@ -676,6 +677,8 @@ async def auto_restart_watcher():
                 await asyncio.sleep(interval)
                 if not app.is_running:
                     return
+                # 退出前先落盘断点/已下载id, 否则重启后从旧断点重新扫历史 → 重复下载
+                app.flush_state(force=True)
                 logger.warning("定时重启触发, 程序退出(容器将自动拉起)...")
                 _os._exit(1)
             else:
@@ -684,6 +687,24 @@ async def auto_restart_watcher():
         except Exception as e:  # pylint: disable = W0718
             logger.exception(f"auto_restart_watcher error: {e}")
             await asyncio.sleep(60)
+
+
+async def state_persist_watcher():
+    """定期把断点/已下载消息id落盘。
+
+    背景: 原来只在正常退出(finally)时才 update_config, 而定时重启用 os._exit、
+    容器重启/强杀也都不会走 finally, 结果 data.yaml/config.yaml 里的断点永远是旧的,
+    每次重启都从旧断点重新扫历史 → 重复下载。
+    """
+    while True:
+        try:
+            await asyncio.sleep(3)
+            if not app.is_running:
+                return
+            app.flush_state()
+        except Exception as e:  # pylint: disable = W0718
+            logger.exception(f"state_persist_watcher error: {e}")
+            await asyncio.sleep(10)
 
 
 async def download_chat_task(
@@ -710,6 +731,21 @@ async def download_chat_task(
         )
 
         for message in skipped_messages:
+            if message is None or getattr(message, "empty", True):
+                continue
+            # 失败重试上限: 超过上限的消息不再重复下载(否则每次重启都会重新下载同一批失败文件)
+            if (
+                app.max_retry_times > 0
+                and int(chat_download_config.retry_counts.get(message.id, 0))
+                >= app.max_retry_times
+            ):
+                logger.info(
+                    f"id={message.id} 失败重试已达上限({app.max_retry_times}次), 不再重复下载."
+                )
+                node.download_status[message.id] = DownloadStatus.SkipDownload
+                chat_download_config.already_download_ids.add(message.id)
+                app.state_dirty = True
+                continue
             await add_download_task(message, node)
 
     async for message in messages_iter:  # type: ignore
@@ -821,6 +857,21 @@ def main():
         app.pre_run()
         init_web(app)
 
+        # 收到 SIGTERM/SIGINT(容器 stop/restart、Ctrl+C) 时先落盘断点再退出
+        def _graceful_exit(_signum, _frame):
+            try:
+                app.flush_state(force=True)
+            except Exception as e:  # pylint: disable = W0718
+                logger.warning(f"flush state before exit failed: {e}")
+            finally:
+                os._exit(0)
+
+        try:
+            signal.signal(signal.SIGTERM, _graceful_exit)
+            signal.signal(signal.SIGINT, _graceful_exit)
+        except Exception as e:  # pylint: disable = W0718
+            logger.warning(f"register signal handler failed: {e}")
+
         set_max_concurrent_transmissions(client, app.max_concurrent_transmissions)
 
         app.loop.run_until_complete(start_server(client))
@@ -839,9 +890,12 @@ def main():
 
         # 用磁盘已下载文件初始化"已下载消息id"集合(按消息id去重)
         app.init_already_download_ids_from_disk()
+        # 合并结果立即落盘, 保证重启后去重集合不丢
+        app.flush_state(force=True)
 
         app.loop.create_task(download_all_chat(client))
         app.loop.create_task(auto_restart_watcher())
+        app.loop.create_task(state_persist_watcher())
         for _ in range(app.max_download_task):
             task = app.loop.create_task(worker(client))
             tasks.append(task)
@@ -865,7 +919,7 @@ def main():
         logger.info(_t("Stopped!"))
         # check_for_updates(app.proxy)
         logger.info(f"{_t('update config')}......")
-        app.update_config()
+        app.flush_state(force=True)
         logger.success(
             f"{_t('Updated last read message_id to config file')},"
             f"{_t('total download')} {app.total_download_task}, "
