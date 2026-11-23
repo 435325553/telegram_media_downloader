@@ -2,6 +2,7 @@
 import asyncio
 import logging
 import os
+import re
 import shutil
 import signal
 import time
@@ -75,7 +76,7 @@ def _check_download_finish(media_size: int, download_path: str, ui_file_name: st
 
     """
     download_size = os.path.getsize(download_path)
-    if media_size == download_size:
+    if media_size == download_size or (not media_size and download_size > 0):
         logger.success(f"{_t('Successfully downloaded')} - {ui_file_name}")
     else:
         logger.warning(
@@ -85,6 +86,74 @@ def _check_download_finish(media_size: int, download_path: str, ui_file_name: st
         )
         os.remove(download_path)
         raise pyrogram.errors.exceptions.bad_request_400.BadRequest()
+
+
+# ==========================================================================
+# 内容级去重 (v2.8.1)
+# 频道反复转发/重传同一个视频时, 消息id 各不相同, 仅按消息id去重仍会重复下载。
+# 这里用 (频道, 文件字节数, 去掉消息id前缀的文件名) 作为内容指纹:
+# 启动/首次遇到某频道时扫描磁盘已有文件建立索引, 下载前命中即跳过。
+# ==========================================================================
+_CONTENT_INDEX: dict = {}
+_CONTENT_INDEX_CHATS: set = set()
+
+
+def _content_dedupe_enabled() -> bool:
+    """读取 dedupe_by_content 开关(默认开启)"""
+    try:
+        value = app.config.get("dedupe_by_content", True)
+    except Exception:  # pylint: disable = W0718
+        return True
+    if isinstance(value, str):
+        return value.strip().lower() not in ("false", "0", "no", "off")
+    return bool(value)
+
+
+def _content_key(chat_id, media_size: int, file_name: str) -> str:
+    """内容指纹: 频道 + 字节数 + 去掉消息id前缀的文件名"""
+    base = os.path.basename(os.path.normpath(str(file_name)))
+    title = base
+    if " - " in base:
+        title = base.split(" - ", 1)[1]
+    else:
+        matched = re.match(r"^\d+\s*-?\s*", base)
+        if matched:
+            title = base[matched.end():]
+    return f"{chat_id}|{int(media_size or 0)}|{title.strip().lower()}"
+
+
+def _build_content_index(chat_id):
+    """扫描频道目录下已有文件, 建立内容指纹索引(每个频道只扫一次)"""
+    if chat_id in _CONTENT_INDEX_CHATS:
+        return
+    _CONTENT_INDEX_CHATS.add(chat_id)
+    if not os.path.isdir(app.save_path):
+        return
+    dir_candidates = {validate_title(f"{chat_id}")}
+    title = app.chat_titles.get(str(chat_id), "")
+    if title:
+        dir_candidates.add(validate_title(title))
+    indexed = 0
+    for dir_name in dir_candidates:
+        root_path = os.path.join(app.save_path, dir_name)
+        if not os.path.isdir(root_path):
+            continue
+        for cur_path, _dirs, files in os.walk(root_path):
+            for fn in files:
+                fpath = os.path.join(cur_path, fn)
+                try:
+                    size = os.path.getsize(fpath)
+                except OSError:
+                    continue
+                if size <= 0:
+                    continue
+                _CONTENT_INDEX.setdefault(
+                    _content_key(chat_id, size, fn), fpath
+                )
+                indexed += 1
+    logger.info(
+        f"chat[{chat_id}] 内容去重索引已建立: {indexed} 个已有文件"
+    )
 
 
 def _move_to_download_path(temp_download_path: str, download_path: str):
@@ -493,6 +562,40 @@ async def download_media(
 
     message_id = message.id
 
+    # 内容级去重: 同字节数 + 同文件名的文件已存在于频道目录, 不再重复下载
+    # (覆盖"频道换新消息id反复转发同一文件", 仅按消息id去重拦不住)
+    if media_size and _content_dedupe_enabled():
+        _build_content_index(node.chat_id)
+        _ckey = _content_key(node.chat_id, media_size, file_name)
+        _exist_path = _CONTENT_INDEX.get(_ckey)
+        if _exist_path:
+            try:
+                _exist_ok = (
+                    os.path.isfile(_exist_path)
+                    and os.path.getsize(_exist_path) == media_size
+                )
+            except OSError:
+                _exist_ok = False
+            if _exist_ok:
+                logger.info(
+                    f"id={message.id} {ui_file_name} "
+                    f"内容重复(已存在 {_exist_path}), 已跳过下载."
+                )
+                return DownloadStatus.SkipDownload, None
+            _CONTENT_INDEX.pop(_ckey, None)
+
+    # 清理遗留的 0 字节临时文件: 否则 Pyrogram 复用该文件, 校验读到 0 字节
+    # 被判定"大小错误" -> 同一文件被重复下载 3 次
+    try:
+        if (
+            temp_file_name
+            and os.path.exists(temp_file_name)
+            and os.path.getsize(temp_file_name) == 0
+        ):
+            os.remove(temp_file_name)
+    except OSError:
+        pass
+
     # 单文件下载超时(秒): 0=不限
     timeout_secs = app.download_timeout * 60 if app.download_timeout > 0 else None
 
@@ -533,6 +636,11 @@ async def download_media(
                 _check_download_finish(media_size, temp_download_path, ui_file_name)
                 await asyncio.sleep(0.5)
                 _move_to_download_path(temp_download_path, file_name)
+                # 成功落盘后登记内容指纹, 后续重复发布的消息直接跳过
+                if media_size:
+                    _CONTENT_INDEX[
+                        _content_key(node.chat_id, media_size, file_name)
+                    ] = file_name
                 # TODO: if not exist file size or media
                 return DownloadStatus.SuccessDownload, file_name
         except asyncio.TimeoutError:

@@ -36,6 +36,9 @@ auto_restart_interval_hours: 6
 # false=保持手动填写值不变(已下载内容仍按消息id去重跳过, 不会重复下载)
 auto_update_last_read_id: true
 
+# 内容级去重(true=推荐): 频道把同一个视频换新消息id反复转发时, 按"文件字节数+文件名"识别为同一内容, 不再重复下载
+dedupe_by_content: true
+
 # 下载的媒体类型
 media_types:
 - video
