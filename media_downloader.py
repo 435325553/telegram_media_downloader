@@ -5,6 +5,7 @@ import os
 import re
 import shutil
 import signal
+import struct
 import time
 from datetime import datetime
 from typing import List, Optional, Tuple, Union
@@ -89,13 +90,16 @@ def _check_download_finish(media_size: int, download_path: str, ui_file_name: st
 
 
 # ==========================================================================
-# 内容级去重 (v2.8.1)
-# 频道反复转发/重传同一个视频时, 消息id 各不相同, 仅按消息id去重仍会重复下载。
-# 这里用 (频道, 文件字节数, 去掉消息id前缀的文件名) 作为内容指纹:
-# 启动/首次遇到某频道时扫描磁盘已有文件建立索引, 下载前命中即跳过。
+# 内容级去重 (v2.8.2)
+# 频道把同一个视频换新消息id反复转发/重传时, 消息id不同、字节数也可能差几KB
+# 到几MB(重新编码), 仅按"id"或"id+字节数"都拦不住。
+# 指纹 = 频道 + 归一化文件名 + 视频时长(±2秒), 时长从消息元数据取,
+# 磁盘老文件按需解析 mp4 的 mvhd 盒子(纯 Python, 不依赖 ffprobe)。
 # ==========================================================================
-_CONTENT_INDEX: dict = {}
-_CONTENT_INDEX_CHATS: set = set()
+_CONTENT_INDEX: dict = {}       # (chat_id, 归一化文件名) -> [文件条目]
+_CONTENT_SCANNED_DIRS: set = set()   # (chat_id, 已扫描的频道目录名)
+_DURATION_CACHE: dict = {}      # 磁盘文件路径 -> 时长(秒)/None
+_VIDEO_EXTS = (".mp4", ".mkv", ".mov", ".m4v", ".webm", ".avi", ".ts")
 
 
 def _content_dedupe_enabled() -> bool:
@@ -109,35 +113,98 @@ def _content_dedupe_enabled() -> bool:
     return bool(value)
 
 
-def _content_key(chat_id, media_size: int, file_name: str) -> str:
-    """内容指纹: 频道 + 字节数 + 去掉消息id前缀的文件名"""
+def _norm_title(file_name: str) -> str:
+    """文件名归一化: 去掉消息id前缀、时间区间后缀、(1) 副本标记、扩展名、空白"""
     base = os.path.basename(os.path.normpath(str(file_name)))
-    title = base
     if " - " in base:
-        title = base.split(" - ", 1)[1]
+        base = base.split(" - ", 1)[1]
     else:
         matched = re.match(r"^\d+\s*-?\s*", base)
         if matched:
-            title = base[matched.end():]
-    return f"{chat_id}|{int(media_size or 0)}|{title.strip().lower()}"
+            base = base[matched.end():]
+    base = re.sub(r"\(\d{2}h[^)]*\)", "", base)
+    base = re.sub(r"\s*\(\d+\)\s*$", "", base)
+    base = re.sub(r"\.(mp4|mkv|mov|m4v|webm|avi|ts)$", "", base, flags=re.I)
+    return re.sub(r"\s+", "", base).strip().lower()
 
 
-def _build_content_index(chat_id):
-    """扫描频道目录下已有文件, 建立内容指纹索引(每个频道只扫一次)"""
-    if chat_id in _CONTENT_INDEX_CHATS:
-        return
-    _CONTENT_INDEX_CHATS.add(chat_id)
+def _mp4_duration(path: str):
+    """纯 Python 解析 mp4/mov 的 mvhd 盒子取视频时长(秒); 失败返回 None"""
+    try:
+        total = os.path.getsize(path)
+    except OSError:
+        return None
+    if total <= 0:
+        return None
+    windows = [(0, min(total, 8 * 1024 * 1024))]
+    if total > 8 * 1024 * 1024:
+        start = max(0, total - 8 * 1024 * 1024)
+        windows.append((start, total - start))
+    for start, length in windows:
+        try:
+            with open(path, "rb") as fh:
+                fh.seek(start)
+                buf = fh.read(length)
+        except OSError:
+            continue
+        idx = buf.find(b"mvhd")
+        while idx != -1:
+            try:
+                base = idx + 4
+                version = buf[base]
+                if version == 0:
+                    timescale = struct.unpack(
+                        ">I", buf[base + 12:base + 16]
+                    )[0]
+                    duration = struct.unpack(
+                        ">I", buf[base + 16:base + 20]
+                    )[0]
+                else:
+                    timescale = struct.unpack(
+                        ">I", buf[base + 20:base + 24]
+                    )[0]
+                    duration = struct.unpack(
+                        ">Q", buf[base + 24:base + 32]
+                    )[0]
+                if timescale and duration:
+                    return round(duration / timescale, 1)
+            except Exception:  # pylint: disable = W0718
+                pass
+            idx = buf.find(b"mvhd", idx + 1)
+    return None
+
+
+def _file_duration(path: str):
+    """磁盘文件时长(带缓存, 只对视频文件解析)"""
+    if path in _DURATION_CACHE:
+        return _DURATION_CACHE[path]
+    duration = None
+    if str(path).lower().endswith(_VIDEO_EXTS):
+        duration = _mp4_duration(path)
+    _DURATION_CACHE[path] = duration
+    return duration
+
+
+def _build_content_index(chat_id, dir_title: str = None):
+    """扫描频道目录已有文件建索引(按归一化文件名分桶, 时长按需解析)
+    目录名优先用消息里的频道标题(最准确), 其次 chat_titles, 最后 chat_id
+    """
     if not os.path.isdir(app.save_path):
         return
     dir_candidates = {validate_title(f"{chat_id}")}
-    title = app.chat_titles.get(str(chat_id), "")
+    title = dir_title or app.chat_titles.get(str(chat_id), "")
     if title:
         dir_candidates.add(validate_title(title))
     indexed = 0
     for dir_name in dir_candidates:
+        scan_key = (chat_id, dir_name)
+        if scan_key in _CONTENT_SCANNED_DIRS:
+            continue
         root_path = os.path.join(app.save_path, dir_name)
         if not os.path.isdir(root_path):
             continue
+        _CONTENT_SCANNED_DIRS.add(scan_key)
+        scanned = 0
         for cur_path, _dirs, files in os.walk(root_path):
             for fn in files:
                 fpath = os.path.join(cur_path, fn)
@@ -148,12 +215,56 @@ def _build_content_index(chat_id):
                 if size <= 0:
                     continue
                 _CONTENT_INDEX.setdefault(
-                    _content_key(chat_id, size, fn), fpath
-                )
-                indexed += 1
-    logger.info(
-        f"chat[{chat_id}] 内容去重索引已建立: {indexed} 个已有文件"
-    )
+                    (chat_id, _norm_title(fn)), []
+                ).append({"path": fpath, "size": size, "duration": None})
+                scanned += 1
+        indexed += scanned
+    if indexed:
+        logger.info(f"chat[{chat_id}] 内容去重索引已建立: {indexed} 个已有文件")
+
+
+def _content_duplicate_path(chat_id, media, media_size: int, file_name: str):
+    """命中已有同内容文件则返回其路径, 否则 None
+    判定: 同频道 + 同归一化文件名, 且 (字节数完全一致 或 视频时长相差<=2秒)
+    """
+    entries = _CONTENT_INDEX.get((chat_id, _norm_title(file_name)))
+    if not entries:
+        return None
+    duration = getattr(media, "duration", None)
+    try:
+        duration = float(duration) if duration else None
+    except (TypeError, ValueError):
+        duration = None
+    for entry in entries:
+        path = entry["path"]
+        if not os.path.isfile(path):
+            continue
+        if media_size and entry["size"] == media_size:
+            return path
+        if duration:
+            file_duration = entry.get("duration")
+            if file_duration is None:
+                file_duration = _file_duration(path)
+                entry["duration"] = file_duration
+            if file_duration and abs(float(file_duration) - duration) <= 2:
+                return path
+    return None
+
+
+def _register_content(chat_id, media, file_path: str):
+    """下载成功后登记内容指纹"""
+    try:
+        size = os.path.getsize(file_path)
+    except OSError:
+        return
+    duration = getattr(media, "duration", None)
+    try:
+        duration = float(duration) if duration else None
+    except (TypeError, ValueError):
+        duration = None
+    _CONTENT_INDEX.setdefault(
+        (chat_id, _norm_title(file_path)), []
+    ).append({"path": file_path, "size": size, "duration": duration})
 
 
 def _move_to_download_path(temp_download_path: str, download_path: str):
@@ -562,27 +673,21 @@ async def download_media(
 
     message_id = message.id
 
-    # 内容级去重: 同字节数 + 同文件名的文件已存在于频道目录, 不再重复下载
-    # (覆盖"频道换新消息id反复转发同一文件", 仅按消息id去重拦不住)
+    # 内容级去重: 同频道 + 同归一化文件名, 且 (字节数一致 或 视频时长相差<=2秒)
+    # (覆盖"频道换新消息id反复转发/重传同一视频", 仅按消息id去重拦不住)
     if media_size and _content_dedupe_enabled():
-        _build_content_index(node.chat_id)
-        _ckey = _content_key(node.chat_id, media_size, file_name)
-        _exist_path = _CONTENT_INDEX.get(_ckey)
+        _build_content_index(
+            node.chat_id, getattr(message.chat, "title", None)
+        )
+        _exist_path = _content_duplicate_path(
+            node.chat_id, _media, media_size, file_name
+        )
         if _exist_path:
-            try:
-                _exist_ok = (
-                    os.path.isfile(_exist_path)
-                    and os.path.getsize(_exist_path) == media_size
-                )
-            except OSError:
-                _exist_ok = False
-            if _exist_ok:
-                logger.info(
-                    f"id={message.id} {ui_file_name} "
-                    f"内容重复(已存在 {_exist_path}), 已跳过下载."
-                )
-                return DownloadStatus.SkipDownload, None
-            _CONTENT_INDEX.pop(_ckey, None)
+            logger.info(
+                f"id={message.id} {ui_file_name} "
+                f"内容重复(已存在 {_exist_path}), 已跳过下载."
+            )
+            return DownloadStatus.SkipDownload, None
 
     # 清理遗留的 0 字节临时文件: 否则 Pyrogram 复用该文件, 校验读到 0 字节
     # 被判定"大小错误" -> 同一文件被重复下载 3 次
@@ -638,9 +743,7 @@ async def download_media(
                 _move_to_download_path(temp_download_path, file_name)
                 # 成功落盘后登记内容指纹, 后续重复发布的消息直接跳过
                 if media_size:
-                    _CONTENT_INDEX[
-                        _content_key(node.chat_id, media_size, file_name)
-                    ] = file_name
+                    _register_content(node.chat_id, _media, file_name)
                 # TODO: if not exist file size or media
                 return DownloadStatus.SuccessDownload, file_name
         except asyncio.TimeoutError:
